@@ -115,11 +115,7 @@ class SupabaseQuery {
     // SINGLE (retorna apenas 1 registro)
     single() {
         this.singleRow = true;
-        // Criar cópia dos headers para não modificar o original
-        this.headers = {
-            ...this.headers,
-            'Accept': 'application/vnd.pgrst.object+json'
-        };
+        this.limitValue = 1; // Garantir que retorna apenas 1
         return this;
     }
 
@@ -240,12 +236,22 @@ class SupabaseQuery {
                 data = await response.json();
             }
 
-            // Se single() e não encontrou nada, retornar erro PGRST116
-            if (this.singleRow && !data) {
-                return {
-                    data: null,
-                    error: { code: 'PGRST116', message: 'No rows found' }
-                };
+            // Se single() foi chamado, retornar apenas o primeiro elemento
+            if (this.singleRow) {
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        return {
+                            data: null,
+                            error: { code: 'PGRST116', message: 'No rows found' }
+                        };
+                    }
+                    data = data[0]; // Retornar apenas o primeiro elemento
+                } else if (!data) {
+                    return {
+                        data: null,
+                        error: { code: 'PGRST116', message: 'No rows found' }
+                    };
+                }
             }
 
             return { data, error: null };

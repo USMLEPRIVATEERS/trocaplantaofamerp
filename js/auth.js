@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Função para carregar dados salvos em cache
     function carregarDadosCache() {
+        // Verificar se os elementos existem (só existem na página de login)
+        if (!serieInput || !numeroChamadaInput || !senhaInput) {
+            return;
+        }
+
         const serieCache = localStorage.getItem('login_serie');
         const numeroChamadaCache = localStorage.getItem('login_numero_chamada');
 
@@ -56,18 +61,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Verificar se usuário existe
-            const { data: usuarios, error } = await supabase
+            const { data: usuario, error } = await supabase
                 .from('usuarios')
                 .select('*')
                 .eq('numero_chamada', numeroChamada)
                 .eq('serie', serie)
-                .limit(1);
+                .single();
 
-            if (error) {
+            if (error && error.code !== 'PGRST116') {
                 throw error;
             }
-
-            const usuario = usuarios && usuarios.length > 0 ? usuarios[0] : null;
 
             if (!usuario) {
                 // Primeiro acesso - criar novo usuário
@@ -107,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const senhaHash = await hashSenha(senha);
 
         // Criar usuário
-        const { data: usuarios, error } = await supabase
+        const { data, error } = await supabase
             .from('usuarios')
             .insert([{
                 numero_chamada: numeroChamada,
@@ -116,13 +119,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 primeiro_acesso: false
             }])
             .select()
-            .limit(1);
+            .single();
 
         if (error) {
             throw error;
         }
-
-        const data = usuarios && usuarios.length > 0 ? usuarios[0] : null;
 
         // Salvar na sessão
         salvarSessao(data);
