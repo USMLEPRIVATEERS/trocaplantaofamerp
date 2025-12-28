@@ -25,7 +25,7 @@ class SupabaseClient {
 class SupabaseQuery {
     constructor(url, headers, table) {
         this.url = url;
-        this.headers = headers;
+        this.headers = { ...headers };
         this.table = table;
         this.selectFields = '*';
         this.filters = [];
@@ -34,11 +34,16 @@ class SupabaseQuery {
         this.limitValue = null;
         this.offsetValue = null;
         this.singleRow = false;
+
+        // Armazenar tipo de operação e dados
+        this.operation = 'SELECT'; // SELECT, INSERT, UPDATE, DELETE
+        this.operationData = null;
     }
 
     // SELECT
     select(fields = '*') {
         this.selectFields = fields;
+        this.operation = 'SELECT';
         return this;
     }
 
@@ -114,50 +119,122 @@ class SupabaseQuery {
         return this;
     }
 
+    // INSERT
+    insert(rows) {
+        this.operation = 'INSERT';
+        this.operationData = rows;
+        return this;
+    }
+
+    // UPDATE
+    update(updates) {
+        this.operation = 'UPDATE';
+        this.operationData = updates;
+        return this;
+    }
+
+    // DELETE
+    delete() {
+        this.operation = 'DELETE';
+        return this;
+    }
+
     // Construir URL com filtros
     buildUrl() {
-        let url = `${this.url}/rest/v1/${this.table}?select=${this.selectFields}`;
+        let url = `${this.url}/rest/v1/${this.table}`;
 
-        if (this.filters.length > 0) {
-            url += '&' + this.filters.join('&');
+        if (this.operation === 'SELECT') {
+            url += `?select=${this.selectFields}`;
+            if (this.filters.length > 0) {
+                url += '&' + this.filters.join('&');
+            }
+        } else {
+            // Para UPDATE, DELETE com filtros
+            if (this.filters.length > 0) {
+                url += '?' + this.filters.join('&');
+            }
         }
 
         if (this.orderField) {
-            url += `&order=${this.orderField}.${this.orderAscending ? 'asc' : 'desc'}`;
+            const separator = url.includes('?') ? '&' : '?';
+            url += `${separator}order=${this.orderField}.${this.orderAscending ? 'asc' : 'desc'}`;
         }
 
         if (this.limitValue) {
-            url += `&limit=${this.limitValue}`;
+            const separator = url.includes('?') ? '&' : '?';
+            url += `${separator}limit=${this.limitValue}`;
         }
 
         if (this.offsetValue) {
-            url += `&offset=${this.offsetValue}`;
+            const separator = url.includes('?') ? '&' : '?';
+            url += `${separator}offset=${this.offsetValue}`;
         }
 
         return url;
     }
 
-    // Executar query (GET)
+    // Executar query
     async execute() {
         try {
-            const url = this.buildUrl();
-            const response = await fetch(url, {
-                method: 'GET',
+            let url = this.buildUrl();
+            let method = 'GET';
+            let body = null;
+
+            switch (this.operation) {
+                case 'SELECT':
+                    method = 'GET';
+                    break;
+                case 'INSERT':
+                    method = 'POST';
+                    body = JSON.stringify(this.operationData);
+                    url = `${this.url}/rest/v1/${this.table}`;
+                    if (this.selectFields !== '*') {
+                        url += `?select=${this.selectFields}`;
+                    }
+                    break;
+                case 'UPDATE':
+                    method = 'PATCH';
+                    body = JSON.stringify(this.operationData);
+                    break;
+                case 'DELETE':
+                    method = 'DELETE';
+                    break;
+            }
+
+            const options = {
+                method: method,
                 headers: this.headers
-            });
+            };
+
+            if (body) {
+                options.body = body;
+            }
+
+            const response = await fetch(url, options);
 
             if (!response.ok) {
-                const error = await response.json();
+                let error;
+                try {
+                    error = await response.json();
+                } catch (e) {
+                    error = { message: `HTTP ${response.status}: ${response.statusText}` };
+                }
                 return {
                     data: null,
                     error: {
                         message: error.message || 'Erro na requisição',
-                        code: error.code || response.status
+                        code: error.code || response.status,
+                        details: error.details || null,
+                        hint: error.hint || null
                     }
                 };
             }
 
-            const data = await response.json();
+            let data = null;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            }
 
             // Se single() e não encontrou nada, retornar erro PGRST116
             if (this.singleRow && !data) {
@@ -171,97 +248,22 @@ class SupabaseQuery {
         } catch (error) {
             return {
                 data: null,
-                error: { message: error.message, code: 'NETWORK_ERROR' }
+                error: {
+                    message: error.message,
+                    code: 'NETWORK_ERROR',
+                    details: error.toString()
+                }
             };
         }
     }
 
-    // INSERT
-    async insert(rows) {
-        try {
-            const url = `${this.url}/rest/v1/${this.table}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: this.headers,
-                body: JSON.stringify(rows)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                return {
-                    data: null,
-                    error: { message: error.message || 'Erro ao inserir', code: error.code }
-                };
-            }
-
-            const data = await response.json();
-            return { data, error: null };
-        } catch (error) {
-            return {
-                data: null,
-                error: { message: error.message, code: 'NETWORK_ERROR' }
-            };
-        }
-    }
-
-    // UPDATE
-    async update(updates) {
-        try {
-            const url = this.buildUrl();
-            const response = await fetch(url, {
-                method: 'PATCH',
-                headers: this.headers,
-                body: JSON.stringify(updates)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                return {
-                    data: null,
-                    error: { message: error.message || 'Erro ao atualizar', code: error.code }
-                };
-            }
-
-            const data = await response.json();
-            return { data, error: null };
-        } catch (error) {
-            return {
-                data: null,
-                error: { message: error.message, code: 'NETWORK_ERROR' }
-            };
-        }
-    }
-
-    // DELETE
-    async delete() {
-        try {
-            const url = this.buildUrl();
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: this.headers
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                return {
-                    data: null,
-                    error: { message: error.message || 'Erro ao deletar', code: error.code }
-                };
-            }
-
-            const data = await response.json();
-            return { data, error: null };
-        } catch (error) {
-            return {
-                data: null,
-                error: { message: error.message, code: 'NETWORK_ERROR' }
-            };
-        }
-    }
-
-    // Aliases para compatibilidade
+    // Permitir await e .then()
     then(resolve, reject) {
         return this.execute().then(resolve, reject);
+    }
+
+    catch(reject) {
+        return this.execute().catch(reject);
     }
 }
 
