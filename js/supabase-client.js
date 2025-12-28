@@ -42,6 +42,7 @@ class SupabaseQuery {
 
     // SELECT
     select(fields = '*') {
+        console.log('[DEBUG select] Fields:', fields);
         this.selectFields = fields;
         this.operation = 'SELECT';
         return this;
@@ -49,7 +50,9 @@ class SupabaseQuery {
 
     // WHERE (eq, neq, gte, lte, etc)
     eq(column, value) {
+        console.log('[DEBUG eq] Column:', column, 'Value:', value);
         this.filters.push(`${column}=eq.${value}`);
+        console.log('[DEBUG eq] Filtros após adicionar:', this.filters);
         return this;
     }
 
@@ -145,6 +148,9 @@ class SupabaseQuery {
 
     // Construir URL com filtros
     buildUrl() {
+        console.log('[DEBUG buildUrl] Filtros:', this.filters);
+        console.log('[DEBUG buildUrl] Operation:', this.operation);
+
         let url = `${this.url}/rest/v1/${this.table}`;
 
         if (this.operation === 'SELECT') {
@@ -174,6 +180,7 @@ class SupabaseQuery {
             url += `${separator}offset=${this.offsetValue}`;
         }
 
+        console.log('[DEBUG buildUrl] URL final:', url);
         return url;
     }
 
