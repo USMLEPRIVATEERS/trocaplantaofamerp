@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troca Plantão FAMERP - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <div class="logo">
+                <h1>Troca Plantão FAMERP</h1>
+                <p class="subtitle">Sistema de troca de plantões</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="serie">Série</label>
+                    <select id="serie" name="serie" required>
+                        <option value="">Selecione a série</option>
+                        <option value="5">5ª Série</option>
+                        <option value="6">6ª Série</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="numeroChamada">Número da Chamada</label>
+                    <input type="number" id="numeroChamada" name="numeroChamada" min="1" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="text" id="senha" name="senha" required placeholder="Digite sua senha">
+                    <small>A senha fica visível para evitar erros</small>
+                </div>
+
+                <div id="confirmarSenhaDiv" class="form-group" style="display: none;">
+                    <label for="confirmarSenha">Confirmar Senha</label>
+                    <input type="text" id="confirmarSenha" name="confirmarSenha" placeholder="Digite a senha novamente">
+                    <small>Primeiro acesso: confirme sua senha</small>
+                </div>
+
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+
+            <div id="mensagem" class="mensagem"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

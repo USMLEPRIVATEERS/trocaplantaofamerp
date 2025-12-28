@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anúncios - Troca Plantão FAMERP</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1 class="header-title">Troca Plantão FAMERP</h1>
+            <div class="header-user">
+                <span id="nomeUsuario"></span>
+                <button onclick="logout()" class="btn btn-sm">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="anuncios.html" class="nav-link active">Anúncios</a>
+            <a href="alunos.html" class="nav-link">Alunos</a>
+        </nav>
+
+        <!-- Filtros -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Filtros</h2>
+                <button onclick="limparFiltros()" class="btn btn-sm">Limpar</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 20px;">
+                <div class="form-group">
+                    <label>Tipo de Anúncio</label>
+                    <select id="filtroTipoAnuncio" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="troca">Troca</option>
+                        <option value="pagamento">Venda</option>
+                        <option value="ambos">Ambos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Plantão</label>
+                    <select id="filtroTipoPlantao" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="PA Cirurgia">PA Cirurgia</option>
+                        <option value="PA Clínica">PA Clínica</option>
+                        <option value="Centro Obstétrico">Centro Obstétrico</option>
+                        <option value="UPA">UPA</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Módulo</label>
+                    <select id="filtroModulo" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="CIRURGIA">Cirurgia</option>
+                        <option value="CLÍNICA">Clínica</option>
+                        <option value="PED">Pediatria</option>
+                        <option value="GO">GO</option>
+                        <option value="ESPECIALIDADES">Especialidades</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Anúncios -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Plantões Disponíveis</h2>
+                <span id="contadorAnuncios">0 anúncios</span>
+            </div>
+            <div id="listaAnuncios" class="grid">
+                <!-- Anúncios carregados dinamicamente -->
+            </div>
+        </div>
+
+        <!-- Seção: Quero Pegar Plantões -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📢 Quero Pegar Plantões</h2>
+            </div>
+            <div style="padding: 20px;">
+                <p>Anuncie que você está disponível para pegar plantões de outros alunos.</p>
+                <button onclick="abrirModalDisponibilidade()" class="btn btn-primary">
+                    + Anunciar Disponibilidade
+                </button>
+                <div id="minhasDisponibilidades" style="margin-top: 20px;">
+                    <!-- Disponibilidades carregadas dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Fazer Oferta -->
+    <div id="modalOferta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Fazer Oferta</h3>
+                <button class="modal-close" onclick="fecharModalOferta()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoAnuncio" style="background: #f8f8f8; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <!-- Info do anúncio -->
+                </div>
+
+                <form id="formOferta" onsubmit="enviarOferta(event)">
+                    <div class="form-group">
+                        <label>Tipo de Oferta</label>
+                        <select id="tipoOferta" name="tipoOferta" required onchange="alterarTipoOferta()">
+                            <option value="">Selecione...</option>
+                            <option value="troca">Trocar por um dos meus plantões</option>
+                            <option value="pagamento">Oferecer pagamento</option>
+                        </select>
+                    </div>
+
+                    <div id="secaoTroca" style="display: none;">
+                        <div class="form-group">
+                            <label>Selecione o plantão que você oferece</label>
+                            <select id="plantaoOferecido" name="plantaoOferecido">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="secaoPagamento" style="display: none;">
+                        <div class="form-group">
+                            <label>Valor Oferecido (R$)</label>
+                            <input type="number" id="valorOferta" name="valorOferta" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mensagem (opcional)</label>
+                        <textarea id="mensagemOferta" name="mensagemOferta" rows="3" placeholder="Deixe uma mensagem para o anunciante..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" onclick="fecharModalOferta()" class="btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Enviar Oferta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Disponibilidade -->
+    <div id="modalDisponibilidade" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Anunciar Disponibilidade</h3>
+                <button class="modal-close" onclick="fecharModalDisponibilidade()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formDisponibilidade" onsubmit="salvarDisponibilidade(event)">
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="periodoDisponivel" name="periodoDisponivel" required>
+                            <option value="">Selecione...</option>
+                            <option value="1">Período 1</option>
+                            <option value="2">Período 2</option>
+                            <option value="3">Período 3</option>
+                            <option value="4">Período 4</option>
+                            <option value="5">Período 5</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Especialidades que aceito</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <label><input type="checkbox" name="especialidade" value="PA Cirurgia"> PA Cirurgia</label>
+                            <label><input type="checkbox" name="especialidade" value="PA Clínica"> PA Clínica</label>
+                            <label><input type="checkbox" name="especialidade" value="Centro Obstétrico"> Centro Obstétrico</label>
+                            <label><input type="checkbox" name="especialidade" value="UPA"> UPA</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Aceito pagamento?</label>
+                        <select id="aceitaPagamento" name="aceitaPagamento" required>
+                            <option value="true">Sim</option>
+                            <option value="false">Não, só troca</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Observações</label>
+                        <textarea id="observacoes" name="observacoes" rows="3" placeholder="Ex: Prefiro plantões aos finais de semana..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" onclick="fecharModalDisponibilidade()" class="btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="mensagem" class="mensagem"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/trocas.js"></script>
+    <script src="js/anuncios.js"></script>
+</body>
+</html>

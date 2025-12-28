@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Troca Plantão FAMERP</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1 class="header-title">Troca Plantão FAMERP</h1>
+            <div class="header-user">
+                <span id="nomeUsuario">Carregando...</span>
+                <button onclick="logout()" class="btn btn-sm btn-secondary">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="dashboard.html" class="nav-link active">📊 Dashboard</a>
+            <a href="anuncios.html" class="nav-link">📢 Anúncios</a>
+            <a href="alunos.html" class="nav-link">👥 Alunos</a>
+        </nav>
+
+        <!-- Alerta Primeira Vez -->
+        <div id="alertaPrimeiraVez" class="mensagem warning" style="display: none;">
+            <strong>⚠️ IMPORTANTE:</strong> Os dados foram importados automaticamente por IA.
+            <strong>Confira seus estágios e plantões e corrija eventuais erros!</strong>
+            <button onclick="fecharAlerta()" class="btn btn-sm" style="margin-left: 12px;">Entendi</button>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalEstagios">0</div>
+                <div class="stat-label">Estágios</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalPlantoes">0</div>
+                <div class="stat-label">Plantões</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalAnuncios">0</div>
+                <div class="stat-label">Anúncios Ativos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalOfertas">0</div>
+                <div class="stat-label">Ofertas Recebidas</div>
+            </div>
+        </div>
+
+        <!-- Meus Dados -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Meus Dados</h2>
+                <button onclick="editarDados()" class="btn btn-sm btn-primary">Editar</button>
+            </div>
+            <form id="formDados">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nome">Nome Completo</label>
+                        <input type="text" id="nome" placeholder="Seu nome completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="whatsapp">WhatsApp</label>
+                        <input type="tel" id="whatsapp" placeholder="(00) 00000-0000">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chavePix">Chave PIX</label>
+                        <input type="text" id="chavePix" placeholder="Sua chave PIX">
+                    </div>
+                    <div class="form-group">
+                        <label for="chavePix2">Confirmar Chave PIX</label>
+                        <input type="text" id="chavePix2" placeholder="Digite novamente (sem colar)">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="aceitaPlantoes">
+                            Estou disponível para pegar plantões
+                        </label>
+                    </div>
+                </div>
+                <div id="disponibilidadeDiv" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="valorPlantao">Valor por Plantão (R$)</label>
+                            <input type="number" id="valorPlantao" min="0" step="0.01" placeholder="0.00">
+                            <small>Deixe 0 para aceitar de graça ou apenas trocas</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="quantidadePlantoes">Quantidade de Plantões</label>
+                            <input type="number" id="quantidadePlantoes" min="1" placeholder="Quantos aceita?">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="aceitaDiurno"> Diurno
+                            </label>
+                            <label>
+                                <input type="checkbox" id="aceitaNoturno"> Noturno
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar Dados</button>
+            </form>
+        </div>
+
+        <!-- Cronograma -->
+        <div class="card">
+            <div class="card-header flex-between">
+                <h2 class="card-title">Meu Cronograma</h2>
+                <div class="flex gap-1">
+                    <label>
+                        <input type="checkbox" id="mostrarAntigos"> Mostrar anteriores
+                    </label>
+                    <button onclick="adicionarEvento()" class="btn btn-sm btn-primary">+ Adicionar</button>
+                </div>
+            </div>
+            <div id="timeline" class="timeline">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando eventos...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notificações/Ofertas -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Ofertas Recebidas</h2>
+            </div>
+            <div id="ofertasRecebidas">
+                <p class="text-center text-tertiary">Nenhuma oferta no momento</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Evento -->
+    <div id="modalEvento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalEventoTitulo">Adicionar Evento</h3>
+                <button class="modal-close" onclick="fecharModalEvento()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEvento">
+                    <input type="hidden" id="eventoId">
+                    <div class="form-group">
+                        <label for="eventoTipo">Tipo</label>
+                        <select id="eventoTipo" required>
+                            <option value="">Selecione</option>
+                            <option value="estagio">Estágio</option>
+                            <option value="plantao">Plantão</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventoNome">Nome/Local</label>
+                        <input type="text" id="eventoNome" required placeholder="Ex: Cirurgia Geral">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventoDataInicio">Data Início</label>
+                            <input type="date" id="eventoDataInicio" required>
+                        </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventoDataFim">Data Fim</label>
+                            <input type="date" id="eventoDataFim">
+                            <small>Deixe vazio para eventos de 1 dia</small>
+                        </div>
+                    </div>
+                    <div class="form-group" id="turnoDiv" style="display: none;">
+                        <label for="eventoTurno">Turno</label>
+                        <select id="eventoTurno">
+                            <option value="Diurno">Diurno</option>
+                            <option value="Noturno">Noturno</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Anunciar Plantão -->
+    <div id="modalAnunciar" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Anunciar Plantão</h3>
+                <button class="modal-close" onclick="fecharModalAnunciar()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formAnunciar">
+                    <input type="hidden" id="plantaoIdAnunciar">
+                    <div class="form-group">
+                        <label>Tipo de Anúncio</label>
+                        <div>
+                            <label><input type="radio" name="tipoAnuncio" value="troca" checked> Apenas Troca</label><br>
+                            <label><input type="radio" name="tipoAnuncio" value="venda"> Apenas Venda</label><br>
+                            <label><input type="radio" name="tipoAnuncio" value="ambos"> Aceito Ambos</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="valorDiv" style="display: none;">
+                        <label for="valorMonetario">Valor (R$)</label>
+                        <input type="number" id="valorMonetario" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="descricaoAnuncio">Observações (opcional)</label>
+                        <textarea id="descricaoAnuncio" rows="3" placeholder="Adicione detalhes se quiser..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Publicar Anúncio</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // TODO: Mover para dashboard.js
+
+        let usuario = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            usuario = verificarAutenticacao();
+            if (!usuario) return;
+
+            // Exibir nome
+            document.getElementById('nomeUsuario').textContent =
+                usuario.nome || `Aluno #${usuario.numero_chamada} - ${usuario.serie}ª Série`;
+
+            // Carregar dados
+            await carregarDados();
+            await carregarEventos();
+            await carregarOfertas();
+
+            // Event listeners
+            document.getElementById('formDados').addEventListener('submit', salvarDados);
+            document.getElementById('formEvento').addEventListener('submit', salvarEvento);
+            document.getElementById('formAnunciar').addEventListener('submit', publicarAnuncio);
+            document.getElementById('aceitaPlantoes').addEventListener('change', function() {
+                document.getElementById('disponibilidadeDiv').style.display =
+                    this.checked ? 'block' : 'none';
+            });
+            document.getElementById('eventoTipo').addEventListener('change', function() {
+                document.getElementById('turnoDiv').style.display =
+                    this.value === 'plantao' ? 'block' : 'none';
+            });
+            document.getElementById('mostrarAntigos').addEventListener('change', carregarEventos);
+
+            // Verificar primeiro acesso
+            if (localStorage.getItem('alertaExibido') !== 'true') {
+                document.getElementById('alertaPrimeiraVez').style.display = 'block';
+            }
+
+            // Implementar Sortable.js para drag & drop
+            const timeline = document.getElementById('timeline');
+            Sortable.create(timeline, {
+                animation: 150,
+                handle: '.timeline-item',
+                onEnd: async function(evt) {
+                    // TODO: Atualizar ordem no banco
+                    console.log('Item movido de', evt.oldIndex, 'para', evt.newIndex);
+                }
+            });
+        });
+
+        async function carregarDados() {
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios')
+                    .select('*')
+                    .eq('id', usuario.id)
+                    .single();
+
+                if (error) throw error;
+
+                // Preencher formulário
+                if (data.nome) document.getElementById('nome').value = data.nome;
+                if (data.whatsapp) document.getElementById('whatsapp').value = data.whatsapp;
+                if (data.chave_pix) document.getElementById('chavePix').value = data.chave_pix;
+                // Não preencher o segundo campo de PIX por segurança
+
+                document.getElementById('aceitaPlantoes').checked = data.aceita_plantoes || false;
+                if (data.aceita_plantoes) {
+                    document.getElementById('disponibilidadeDiv').style.display = 'block';
+                    if (data.valor_plantao) document.getElementById('valorPlantao').value = data.valor_plantao;
+                    if (data.quantidade_plantoes_aceita) document.getElementById('quantidadePlantoes').value = data.quantidade_plantoes_aceita;
+                    document.getElementById('aceitaDiurno').checked = data.aceita_diurno || false;
+                    document.getElementById('aceitaNoturno').checked = data.aceita_noturno || false;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar dados do usuário');
+            }
+        }
+
+        async function carregarEventos() {
+            const timeline = document.getElementById('timeline');
+            const mostrarAntigos = document.getElementById('mostrarAntigos').checked;
+            const hoje = new Date().toISOString().split('T')[0];
+
+            try {
+                timeline.innerHTML = '<div class="loading"><div class="spinner"></div><p>Carregando...</p></div>';
+
+                // Carregar estágios
+                let queryEstagios = supabase
+                    .from('estagios')
+                    .select('*')
+                    .eq('usuario_id', usuario.id);
+
+                if (!mostrarAntigos) {
+                    queryEstagios = queryEstagios.gte('data_fim', hoje);
+                }
+
+                const { data: estagios, error: errEstagios } = await queryEstagios.order('data_inicio');
+
+                // Carregar plantões
+                let queryPlantoes = supabase
+                    .from('plantoes')
+                    .select('*')
+                    .eq('usuario_id', usuario.id);
+
+                if (!mostrarAntigos) {
+                    queryPlantoes = queryPlantoes.gte('data', hoje);
+                }
+
+                const { data: plantoes, error: errPlantoes } = await queryPlantoes.order('data');
+
+                if (errEstagios) throw errEstagios;
+                if (errPlantoes) throw errPlantoes;
+
+                // Atualizar estatísticas
+                document.getElementById('totalEstagios').textContent = estagios?.length || 0;
+                document.getElementById('totalPlantoes').textContent = plantoes?.length || 0;
+
+                // Renderizar eventos
+                timeline.innerHTML = '';
+
+                // Combinar e ordenar
+                const eventos = [
+                    ...(estagios || []).map(e => ({ ...e, tipo: 'estagio' })),
+                    ...(plantoes || []).map(p => ({ ...p, tipo: 'plantao', data_inicio: p.data }))
+                ].sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+
+                if (eventos.length === 0) {
+                    timeline.innerHTML = '<p class="text-center text-tertiary">Nenhum evento cadastrado</p>';
+                    return;
+                }
+
+                eventos.forEach(evento => {
+                    const item = criarItemTimeline(evento);
+                    timeline.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar eventos:', error);
+                timeline.innerHTML = '<p class="text-center error">Erro ao carregar eventos</p>';
+            }
+        }
+
+        function criarItemTimeline(evento) {
+            const div = document.createElement('div');
+            div.className = 'timeline-item';
+            div.dataset.id = evento.id;
+            div.dataset.tipo = evento.tipo;
+
+            const dataInicio = new Date(evento.data_inicio || evento.data);
+            const dataFim = evento.data_fim ? new Date(evento.data_fim) : null;
+
+            const formatarData = (data) => {
+                return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            };
+
+            const dataTexto = dataFim
+                ? `${formatarData(dataInicio)} a ${formatarData(dataFim)}`
+                : formatarData(dataInicio);
+
+            div.innerHTML = `
+                <div class="timeline-header">
+                    <div>
+                        <div class="timeline-title">${evento.nome || evento.tipo}</div>
+                        <div class="timeline-date">${dataTexto}</div>
+                    </div>
+                    <span class="badge">${evento.tipo === 'estagio' ? 'Estágio' : 'Plantão'}</span>
+                </div>
+                ${evento.tipo === 'plantao' ? `<div class="timeline-details">Turno: ${evento.turno}</div>` : ''}
+                <div class="timeline-actions">
+                    <button onclick="editarEvento('${evento.id}', '${evento.tipo}')" class="btn btn-sm btn-secondary">Editar</button>
+                    ${evento.tipo === 'plantao' && !evento.anunciado ?
+                        `<button onclick="abrirModalAnunciar('${evento.id}')" class="btn btn-sm btn-primary">Anunciar</button>` : ''}
+                    ${evento.anunciado ? '<span class="badge badge-success">Anunciado</span>' : ''}
+                    <button onclick="removerEvento('${evento.id}', '${evento.tipo}')" class="btn btn-sm btn-danger">Remover</button>
+                </div>
+            `;
+
+            return div;
+        }
+
+        function adicionarEvento() {
+            document.getElementById('modalEventoTitulo').textContent = 'Adicionar Evento';
+            document.getElementById('formEvento').reset();
+            document.getElementById('eventoId').value = '';
+            document.getElementById('modalEvento').classList.add('show');
+        }
+
+        async function editarEvento(id, tipo) {
+            // TODO: Implementar edição
+            console.log('Editar', tipo, id);
+        }
+
+        async function removerEvento(id, tipo) {
+            if (!confirm('Tem certeza que deseja remover este evento?')) return;
+
+            try {
+                const tabela = tipo === 'estagio' ? 'estagios' : 'plantoes';
+                const { error } = await supabase
+                    .from(tabela)
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                await carregarEventos();
+                alert('Evento removido com sucesso!');
+            } catch (error) {
+                console.error('Erro ao remover:', error);
+                alert('Erro ao remover evento');
+            }
+        }
+
+        async function salvarEvento(e) {
+            e.preventDefault();
+
+            const tipo = document.getElementById('eventoTipo').value;
+            const nome = document.getElementById('eventoNome').value;
+            const dataInicio = document.getElementById('eventoDataInicio').value;
+            const dataFim = document.getElementById('eventoDataFim').value || dataInicio;
+            const turno = document.getElementById('eventoTurno').value;
+
+            try {
+                if (tipo === 'estagio') {
+                    const { error } = await supabase
+                        .from('estagios')
+                        .insert([{
+                            usuario_id: usuario.id,
+                            nome: nome,
+                            data_inicio: dataInicio,
+                            data_fim: dataFim
+                        }]);
+
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase
+                        .from('plantoes')
+                        .insert([{
+                            usuario_id: usuario.id,
+                            tipo: nome,
+                            data: dataInicio,
+                            turno: turno
+                        }]);
+
+                    if (error) throw error;
+                }
+
+                fecharModalEvento();
+                await carregarEventos();
+                alert('Evento adicionado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                alert('Erro ao salvar evento');
+            }
+        }
+
+        async function salvarDados(e) {
+            e.preventDefault();
+
+            const chavePix = document.getElementById('chavePix').value;
+            const chavePix2 = document.getElementById('chavePix2').value;
+
+            if (chavePix && chavePix !== chavePix2) {
+                alert('As chaves PIX não conferem!');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('usuarios')
+                    .update({
+                        nome: document.getElementById('nome').value,
+                        whatsapp: document.getElementById('whatsapp').value,
+                        chave_pix: chavePix || null,
+                        aceita_plantoes: document.getElementById('aceitaPlantoes').checked,
+                        valor_plantao: document.getElementById('valorPlantao').value || null,
+                        quantidade_plantoes_aceita: document.getElementById('quantidadePlantoes').value || null,
+                        aceita_diurno: document.getElementById('aceitaDiurno').checked,
+                        aceita_noturno: document.getElementById('aceitaNoturno').checked
+                    })
+                    .eq('id', usuario.id);
+
+                if (error) throw error;
+
+                alert('Dados salvos com sucesso!');
+                document.getElementById('chavePix2').value = ''; // Limpar confirmação
+            } catch (error) {
+                console.error('Erro ao salvar dados:', error);
+                alert('Erro ao salvar dados');
+            }
+        }
+
+        function abrirModalAnunciar(plantaoId) {
+            document.getElementById('plantaoIdAnunciar').value = plantaoId;
+            document.getElementById('modalAnunciar').classList.add('show');
+        }
+
+        async function publicarAnuncio(e) {
+            e.preventDefault();
+
+            const plantaoId = document.getElementById('plantaoIdAnunciar').value;
+            const tipoAnuncio = document.querySelector('input[name="tipoAnuncio"]:checked').value;
+            const valor = document.getElementById('valorMonetario').value;
+            const descricao = document.getElementById('descricaoAnuncio').value;
+
+            try {
+                const { error } = await supabase
+                    .from('anuncios')
+                    .insert([{
+                        plantao_id: plantaoId,
+                        usuario_id: usuario.id,
+                        tipo_anuncio: tipoAnuncio,
+                        valor_monetario: valor || null,
+                        descricao: descricao || null,
+                        status: 'ativo'
+                    }]);
+
+                if (error) throw error;
+
+                // Marcar plantão como anunciado
+                await supabase
+                    .from('plantoes')
+                    .update({ anunciado: true })
+                    .eq('id', plantaoId);
+
+                fecharModalAnunciar();
+                await carregarEventos();
+                alert('Anúncio publicado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao publicar anúncio:', error);
+                alert('Erro ao publicar anúncio');
+            }
+        }
+
+        async function carregarOfertas() {
+            try {
+                // Buscar anúncios ativos do usuário
+                const { data: anuncios, error: errorAnuncios } = await supabase
+                    .from('anuncios')
+                    .select('id')
+                    .eq('usuario_id', usuario.id)
+                    .eq('status', 'ativo');
+
+                if (errorAnuncios) throw errorAnuncios;
+
+                if (!anuncios || anuncios.length === 0) {
+                    document.getElementById('totalOfertas').textContent = '0';
+                    document.getElementById('totalAnuncios').textContent = '0';
+                    return;
+                }
+
+                document.getElementById('totalAnuncios').textContent = anuncios.length;
+
+                const anuncioIds = anuncios.map(a => a.id);
+
+                // Buscar ofertas pendentes
+                const { data: ofertas, error: errorOfertas } = await supabase
+                    .from('ofertas')
+                    .select(`
+                        *,
+                        anuncio:anuncios(*, plantao:plantoes(*)),
+                        ofertante:usuarios!usuario_id(numero_chamada, nome, whatsapp),
+                        plantao_oferecido:plantoes(*)
+                    `)
+                    .in('anuncio_id', anuncioIds)
+                    .eq('status', 'pendente')
+                    .order('created_at', { ascending: false });
+
+                if (errorOfertas) throw errorOfertas;
+
+                document.getElementById('totalOfertas').textContent = ofertas?.length || 0;
+
+                const container = document.getElementById('ofertasRecebidas');
+
+                if (!ofertas || ofertas.length === 0) {
+                    container.innerHTML = '<p class="text-center text-tertiary">Nenhuma oferta no momento</p>';
+                    return;
+                }
+
+                container.innerHTML = ofertas.map(oferta => {
+                    const plantaoAnunciado = oferta.anuncio.plantao;
+                    const dataAnunciado = new Date(plantaoAnunciado.data).toLocaleDateString('pt-BR');
+
+                    let ofertaTexto = '';
+                    let ofertaCor = '#0066cc';
+
+                    if (oferta.tipo_oferta === 'troca' && oferta.plantao_oferecido) {
+                        const plantaoOferecido = oferta.plantao_oferecido;
+                        const dataOferecido = new Date(plantaoOferecido.data).toLocaleDateString('pt-BR');
+                        ofertaTexto = `
+                            <div style="background: #f0f8ff; padding: 12px; border-radius: 4px; margin-top: 8px;">
+                                <strong>Plantão oferecido:</strong><br>
+                                ${plantaoOferecido.tipo} - ${dataOferecido} - ${plantaoOferecido.turno}<br>
+                                Módulo: ${plantaoOferecido.modulo}
+                            </div>
+                        `;
+                        ofertaCor = '#0066cc';
+                    } else if (oferta.tipo_oferta === 'pagamento') {
+                        ofertaTexto = `
+                            <div style="background: #f0fff0; padding: 12px; border-radius: 4px; margin-top: 8px;">
+                                <strong>💰 Valor oferecido:</strong> R$ ${oferta.valor_oferecido?.toFixed(2) || '0.00'}
+                            </div>
+                        `;
+                        ofertaCor = '#009900';
+                    }
+
+                    const mensagemTexto = oferta.mensagem ? `
+                        <div style="margin-top: 8px; font-style: italic; color: #666;">
+                            💬 "${oferta.mensagem}"
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="card" style="padding: 16px; margin-bottom: 12px; border-left: 4px solid ${ofertaCor};">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 16px;">
+                                        ${oferta.ofertante.nome || `Aluno #${oferta.ofertante.numero_chamada}`}
+                                    </div>
+                                    <div style="font-size: 14px; color: #666;">
+                                        #${oferta.ofertante.numero_chamada}
+                                        ${oferta.ofertante.whatsapp ? ` · 📱 ${oferta.ofertante.whatsapp}` : ''}
+                                    </div>
+                                </div>
+                                <div style="background: ${ofertaCor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                    ${oferta.tipo_oferta === 'troca' ? '🔄 Troca' : '💰 Pagamento'}
+                                </div>
+                            </div>
+
+                            <div style="background: #f8f8f8; padding: 12px; border-radius: 4px; margin-bottom: 8px;">
+                                <strong>Seu plantão anunciado:</strong><br>
+                                ${plantaoAnunciado.tipo} - ${dataAnunciado} - ${plantaoAnunciado.turno}
+                            </div>
+
+                            ${ofertaTexto}
+                            ${mensagemTexto}
+
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button onclick="aceitarOferta('${oferta.id}')" class="btn btn-primary" style="flex: 1;">
+                                    ✅ Aceitar
+                                </button>
+                                <button onclick="rejeitarOferta('${oferta.id}')" class="btn" style="flex: 1; background: #cc0000; color: white;">
+                                    ❌ Rejeitar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Erro ao carregar ofertas:', error);
+                document.getElementById('ofertasRecebidas').innerHTML =
+                    '<p class="text-center error">Erro ao carregar ofertas</p>';
+            }
+        }
+
+        async function aceitarOferta(ofertaId) {
+            if (!confirm('Tem certeza que deseja aceitar esta oferta?')) {
+                return;
+            }
+
+            try {
+                // Buscar dados completos da oferta
+                const { data: oferta, error: errorBusca } = await supabase
+                    .from('ofertas')
+                    .select(`
+                        *,
+                        anuncio:anuncios(*, plantao:plantoes(*), usuario:usuarios(*)),
+                        ofertante:usuarios!usuario_id(*),
+                        plantao_oferecido:plantoes(*)
+                    `)
+                    .eq('id', ofertaId)
+                    .single();
+
+                if (errorBusca) throw errorBusca;
+
+                // Atualizar status da oferta para aceita
+                const { error: errorAceitar } = await supabase
+                    .from('ofertas')
+                    .update({ status: 'aceita' })
+                    .eq('id', ofertaId);
+
+                if (errorAceitar) throw errorAceitar;
+
+                // Rejeitar outras ofertas do mesmo anúncio
+                const { error: errorRejeitar } = await supabase
+                    .from('ofertas')
+                    .update({ status: 'rejeitada' })
+                    .eq('anuncio_id', oferta.anuncio.id)
+                    .neq('id', ofertaId);
+
+                if (errorRejeitar) throw errorRejeitar;
+
+                // Marcar anúncio como concluído
+                const { error: errorAnuncio } = await supabase
+                    .from('anuncios')
+                    .update({ status: 'concluido' })
+                    .eq('id', oferta.anuncio.id);
+
+                if (errorAnuncio) throw errorAnuncio;
+
+                // Criar registro de troca confirmada
+                const { data: troca, error: errorTroca } = await supabase
+                    .from('trocas_confirmadas')
+                    .insert([{
+                        anuncio_id: oferta.anuncio.id,
+                        oferta_id: ofertaId,
+                        usuario_anunciante_id: oferta.anuncio.usuario.id,
+                        usuario_ofertante_id: oferta.ofertante.id,
+                        plantao_anunciado_id: oferta.anuncio.plantao.id,
+                        plantao_oferecido_id: oferta.plantao_oferecido?.id || null,
+                        tipo_troca: oferta.tipo_oferta,
+                        valor: oferta.valor_oferecido,
+                        whatsapp_anunciante: oferta.anuncio.usuario.whatsapp,
+                        chave_pix_anunciante: oferta.anuncio.usuario.chave_pix
+                    }])
+                    .select()
+                    .single();
+
+                if (errorTroca) throw errorTroca;
+
+                // Criar notificação para o ofertante
+                await supabase
+                    .from('notificacoes')
+                    .insert([{
+                        usuario_id: oferta.ofertante.id,
+                        tipo: 'oferta_aceita',
+                        titulo: 'Oferta Aceita!',
+                        mensagem: `Sua oferta foi aceita! A troca está confirmada.`,
+                        link: '/dashboard.html'
+                    }]);
+
+                // ✨ EXIBIR MODAL DA PLANILHA se for troca mútua
+                if (oferta.tipo_oferta === 'troca' && oferta.plantao_oferecido) {
+                    exibirModalPlanilha({
+                        trocaId: troca.id,
+                        numeroAnunciante: oferta.anuncio.usuario.numero_chamada,
+                        numeroOfertante: oferta.ofertante.numero_chamada,
+                        nomeAnunciante: oferta.anuncio.usuario.nome || `Aluno #${oferta.anuncio.usuario.numero_chamada}`,
+                        nomeOfertante: oferta.ofertante.nome || `Aluno #${oferta.ofertante.numero_chamada}`,
+                        plantaoAnunciado: `${oferta.anuncio.plantao.tipo} - ${oferta.anuncio.plantao.turno}`,
+                        plantaoOferecido: `${oferta.plantao_oferecido.tipo} - ${oferta.plantao_oferecido.turno}`,
+                        dataPlantaoAnunciado: oferta.anuncio.plantao.data,
+                        dataPlantaoOferecido: oferta.plantao_oferecido.data
+                    });
+                }
+
+                alert('✅ Oferta aceita com sucesso!\n\nA troca foi confirmada e ambos foram notificados.');
+
+                // Recarregar ofertas
+                await carregarOfertas();
+                await carregarEventos();
+
+            } catch (error) {
+                console.error('Erro ao aceitar oferta:', error);
+                alert('❌ Erro ao aceitar oferta. Tente novamente.');
+            }
+        }
+
+        async function rejeitarOferta(ofertaId) {
+            if (!confirm('Tem certeza que deseja rejeitar esta oferta?')) {
+                return;
+            }
+
+            try {
+                // Buscar dados da oferta para notificar
+                const { data: oferta } = await supabase
+                    .from('ofertas')
+                    .select('usuario_id')
+                    .eq('id', ofertaId)
+                    .single();
+
+                // Atualizar status
+                const { error } = await supabase
+                    .from('ofertas')
+                    .update({ status: 'rejeitada' })
+                    .eq('id', ofertaId);
+
+                if (error) throw error;
+
+                // Notificar ofertante
+                if (oferta) {
+                    await supabase
+                        .from('notificacoes')
+                        .insert([{
+                            usuario_id: oferta.usuario_id,
+                            tipo: 'oferta_rejeitada',
+                            titulo: 'Oferta Rejeitada',
+                            mensagem: 'Sua oferta foi rejeitada.',
+                            link: '/anuncios.html'
+                        }]);
+                }
+
+                alert('Oferta rejeitada.');
+                await carregarOfertas();
+
+            } catch (error) {
+                console.error('Erro ao rejeitar oferta:', error);
+                alert('Erro ao rejeitar oferta.');
+            }
+        }
+
+        function fecharModalEvento() {
+            document.getElementById('modalEvento').classList.remove('show');
+        }
+
+        function fecharModalAnunciar() {
+            document.getElementById('modalAnunciar').classList.remove('show');
+            document.getElementById('formAnunciar').reset();
+        }
+
+        function fecharAlerta() {
+            document.getElementById('alertaPrimeiraVez').style.display = 'none';
+            localStorage.setItem('alertaExibido', 'true');
+        }
+
+        // Fechar modals ao clicar fora
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+    </script>
+
+    <!-- Script de integração com planilha -->
+    <script src="js/trocas.js"></script>
+</body>
+</html>

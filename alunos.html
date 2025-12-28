@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alunos - Troca Plantão FAMERP</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1 class="header-title">Troca Plantão FAMERP</h1>
+            <div class="header-user">
+                <span id="nomeUsuario"></span>
+                <button onclick="logout()" class="btn btn-sm">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="anuncios.html" class="nav-link">Anúncios</a>
+            <a href="alunos.html" class="nav-link active">Alunos</a>
+        </nav>
+
+        <!-- Busca e Filtros -->
+        <div class="card">
+            <div style="padding: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: end;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Buscar por nome ou número</label>
+                        <input type="text" id="busca" placeholder="Digite o nome ou número..." oninput="aplicarFiltros()">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Série</label>
+                        <select id="filtroSerie" onchange="aplicarFiltros()">
+                            <option value="">Todas</option>
+                            <option value="5">5ª Série</option>
+                            <option value="6">6ª Série</option>
+                        </select>
+                    </div>
+                    <button onclick="limparFiltros()" class="btn">Limpar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Galeria de Alunos -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Alunos FAMERP</h2>
+                <span id="contadorAlunos">0 alunos</span>
+            </div>
+            <div id="galeriaAlunos" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+                <!-- Alunos carregados dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Perfil do Aluno -->
+    <div id="modalPerfil" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="nomeAluno"></h3>
+                <button class="modal-close" onclick="fecharModalPerfil()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoAluno" style="background: #f8f8f8; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <!-- Informações básicas -->
+                </div>
+
+                <!-- Tabs -->
+                <div style="display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px;">
+                    <button class="tab-button active" onclick="mudarTab('plantoes')" data-tab="plantoes">
+                        Plantões
+                    </button>
+                    <button class="tab-button" onclick="mudarTab('estagios')" data-tab="estagios">
+                        Estágios
+                    </button>
+                    <button class="tab-button" onclick="mudarTab('disponibilidade')" data-tab="disponibilidade">
+                        Disponibilidade
+                    </button>
+                </div>
+
+                <!-- Conteúdo das Tabs -->
+                <div id="tabPlantoes" class="tab-content active">
+                    <div id="plantoesAluno">
+                        <!-- Plantões do aluno -->
+                    </div>
+                </div>
+
+                <div id="tabEstagios" class="tab-content">
+                    <div id="estagiosAluno">
+                        <!-- Estágios do aluno -->
+                    </div>
+                </div>
+
+                <div id="tabDisponibilidade" class="tab-content">
+                    <div id="disponibilidadeAluno">
+                        <!-- Disponibilidade do aluno -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Oferta Direta -->
+    <div id="modalOfertaDireta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Fazer Oferta Direta</h3>
+                <button class="modal-close" onclick="fecharModalOfertaDireta()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoPlantaoSelecionado" style="background: #f8f8f8; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <!-- Info do plantão -->
+                </div>
+
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    ⚠️ Esta pessoa não anunciou este plantão. Sua oferta será enviada como uma proposta direta.
+                </p>
+
+                <form id="formOfertaDireta" onsubmit="enviarOfertaDireta(event)">
+                    <div class="form-group">
+                        <label>Tipo de Oferta</label>
+                        <select id="tipoOfertaDireta" name="tipoOfertaDireta" required onchange="alterarTipoOfertaDireta()">
+                            <option value="">Selecione...</option>
+                            <option value="troca">Trocar por um dos meus plantões</option>
+                            <option value="pagamento">Oferecer pagamento</option>
+                        </select>
+                    </div>
+
+                    <div id="secaoTrocaDireta" style="display: none;">
+                        <div class="form-group">
+                            <label>Selecione o plantão que você oferece</label>
+                            <select id="plantaoOferecidoDireto" name="plantaoOferecidoDireto">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="secaoPagamentoDireto" style="display: none;">
+                        <div class="form-group">
+                            <label>Valor Oferecido (R$)</label>
+                            <input type="number" id="valorOfertaDireta" name="valorOfertaDireta" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mensagem (opcional)</label>
+                        <textarea id="mensagemOfertaDireta" name="mensagemOfertaDireta" rows="3" placeholder="Deixe uma mensagem..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" onclick="fecharModalOfertaDireta()" class="btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Enviar Oferta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="mensagem" class="mensagem"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/alunos.js"></script>
+
+    <style>
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-button:hover {
+            color: #000;
+            background: #f8f8f8;
+        }
+
+        .tab-button.active {
+            color: #000;
+            font-weight: bold;
+            border-bottom-color: #000;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</body>
+</html>
