@@ -115,7 +115,11 @@ class SupabaseQuery {
     // SINGLE (retorna apenas 1 registro)
     single() {
         this.singleRow = true;
-        this.headers['Accept'] = 'application/vnd.pgrst.object+json';
+        // Criar cópia dos headers para não modificar o original
+        this.headers = {
+            ...this.headers,
+            'Accept': 'application/vnd.pgrst.object+json'
+        };
         return this;
     }
 

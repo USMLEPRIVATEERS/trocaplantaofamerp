@@ -11,10 +11,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmarSenhaInput = document.getElementById('confirmarSenha');
     const mensagemDiv = document.getElementById('mensagem');
 
+    // Carregar dados do cache (localStorage)
+    carregarDadosCache();
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         await fazerLogin();
     });
+
+    // Função para carregar dados salvos em cache
+    function carregarDadosCache() {
+        const serieCache = localStorage.getItem('login_serie');
+        const numeroChamadaCache = localStorage.getItem('login_numero_chamada');
+
+        if (serieCache) {
+            serieInput.value = serieCache;
+        }
+
+        if (numeroChamadaCache) {
+            numeroChamadaInput.value = numeroChamadaCache;
+        }
+
+        // Focar no campo de senha se os outros estiverem preenchidos
+        if (serieCache && numeroChamadaCache) {
+            senhaInput.focus();
+        }
+    }
+
+    // Função para salvar dados no cache
+    function salvarDadosCache(serie, numeroChamada) {
+        localStorage.setItem('login_serie', serie);
+        localStorage.setItem('login_numero_chamada', numeroChamada);
+    }
 
     async function fazerLogin() {
         const serie = serieInput.value;
@@ -94,6 +122,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Salvar na sessão
         salvarSessao(data);
+
+        // Salvar dados no cache para acelerar próximos logins
+        salvarDadosCache(serie, numeroChamada);
+
         mostrarMensagem('Conta criada com sucesso! Redirecionando...', 'success');
 
         setTimeout(() => {
@@ -137,6 +169,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Salvar na sessão
         salvarSessao(usuario);
+
+        // Salvar dados no cache para acelerar próximos logins
+        salvarDadosCache(usuario.serie, usuario.numero_chamada);
+
         mostrarMensagem('Senha confirmada! Redirecionando...', 'success');
 
         setTimeout(() => {
@@ -154,6 +190,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Salvar na sessão
         salvarSessao(usuario);
+
+        // Salvar dados no cache para acelerar próximos logins
+        salvarDadosCache(usuario.serie, usuario.numero_chamada);
+
         mostrarMensagem('Login realizado! Redirecionando...', 'success');
 
         setTimeout(() => {
