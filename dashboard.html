@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Troca Plantão FAMERP</title>
-    <link rel="stylesheet" href="css/style.css?v=11">
+    <link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
     <div class="header">
@@ -223,10 +223,10 @@
     </div>
 
     <!-- Cliente Supabase customizado (sem CDN - funciona em qualquer navegador) -->
-    <script src="js/supabase-client.js?v=11"></script>
+    <script src="js/supabase-client.js?v=12"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="js/config.js?v=11"></script>
-    <script src="js/auth.js?v=11"></script>
+    <script src="js/config.js?v=12"></script>
+    <script src="js/auth.js?v=12"></script>
     <script>
         // TODO: Mover para dashboard.js
 
@@ -413,12 +413,50 @@
             document.getElementById('modalEventoTitulo').textContent = 'Adicionar Evento';
             document.getElementById('formEvento').reset();
             document.getElementById('eventoId').value = '';
+            document.getElementById('eventoTipo').disabled = false;
+            document.getElementById('turnoDiv').style.display = 'none';
             document.getElementById('modalEvento').classList.add('show');
         }
 
         async function editarEvento(id, tipo) {
-            // TODO: Implementar edição
-            console.log('Editar', tipo, id);
+            try {
+                document.getElementById('modalEventoTitulo').textContent = 'Editar Evento';
+
+                // Buscar dados do evento
+                const tabela = tipo === 'estagio' ? 'estagios' : 'plantoes';
+                const { data: evento, error } = await supabase
+                    .from(tabela)
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                // Preencher formulário
+                document.getElementById('eventoId').value = id;
+                document.getElementById('eventoTipo').value = tipo;
+                document.getElementById('eventoTipo').disabled = true; // Não pode mudar tipo na edição
+
+                if (tipo === 'estagio') {
+                    document.getElementById('eventoNome').value = evento.nome;
+                    document.getElementById('eventoDataInicio').value = evento.data_inicio;
+                    document.getElementById('eventoDataFim').value = evento.data_fim || '';
+                    document.getElementById('turnoDiv').style.display = 'none';
+                } else {
+                    document.getElementById('eventoNome').value = evento.tipo;
+                    document.getElementById('eventoDataInicio').value = evento.data;
+                    document.getElementById('eventoDataFim').value = '';
+                    document.getElementById('eventoTurno').value = evento.turno || 'Diurno';
+                    document.getElementById('turnoDiv').style.display = 'block';
+                }
+
+                // Abrir modal
+                document.getElementById('modalEvento').classList.add('show');
+
+            } catch (error) {
+                console.error('Erro ao carregar evento:', error);
+                alert('Erro ao carregar dados do evento');
+            }
         }
 
         async function removerEvento(id, tipo) {
@@ -444,6 +482,7 @@
         async function salvarEvento(e) {
             e.preventDefault();
 
+            const eventoId = document.getElementById('eventoId').value;
             const tipo = document.getElementById('eventoTipo').value;
             const nome = document.getElementById('eventoNome').value;
             const dataInicio = document.getElementById('eventoDataInicio').value;
@@ -452,32 +491,58 @@
 
             try {
                 if (tipo === 'estagio') {
-                    const { error } = await supabase
-                        .from('estagios')
-                        .insert([{
-                            usuario_id: usuario.id,
-                            nome: nome,
-                            data_inicio: dataInicio,
-                            data_fim: dataFim
-                        }]);
+                    const dados = {
+                        nome: nome,
+                        data_inicio: dataInicio,
+                        data_fim: dataFim
+                    };
 
-                    if (error) throw error;
+                    if (eventoId) {
+                        // EDITAR
+                        const { error } = await supabase
+                            .from('estagios')
+                            .update(dados)
+                            .eq('id', eventoId);
+
+                        if (error) throw error;
+                    } else {
+                        // CRIAR
+                        dados.usuario_id = usuario.id;
+                        const { error } = await supabase
+                            .from('estagios')
+                            .insert([dados]);
+
+                        if (error) throw error;
+                    }
                 } else {
-                    const { error } = await supabase
-                        .from('plantoes')
-                        .insert([{
-                            usuario_id: usuario.id,
-                            tipo: nome,
-                            data: dataInicio,
-                            turno: turno
-                        }]);
+                    const dados = {
+                        tipo: nome,
+                        data: dataInicio,
+                        turno: turno
+                    };
 
-                    if (error) throw error;
+                    if (eventoId) {
+                        // EDITAR
+                        const { error } = await supabase
+                            .from('plantoes')
+                            .update(dados)
+                            .eq('id', eventoId);
+
+                        if (error) throw error;
+                    } else {
+                        // CRIAR
+                        dados.usuario_id = usuario.id;
+                        const { error } = await supabase
+                            .from('plantoes')
+                            .insert([dados]);
+
+                        if (error) throw error;
+                    }
                 }
 
                 fecharModalEvento();
                 await carregarEventos();
-                alert('Evento adicionado com sucesso!');
+                alert(eventoId ? 'Evento atualizado com sucesso!' : 'Evento adicionado com sucesso!');
             } catch (error) {
                 console.error('Erro ao salvar:', error);
                 alert('Erro ao salvar evento');
