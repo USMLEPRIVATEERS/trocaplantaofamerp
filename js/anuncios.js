@@ -476,7 +476,6 @@ async function publicarAnuncioPlantao(e) {
     const plantaoId = document.getElementById('plantaoAnunciar').value;
     const tipoNegociacao = document.querySelector('input[name="tipoNegociacaoPlantao"]:checked').value;
     const valor = document.getElementById('valorAnuncioPlantao').value;
-    const pix = document.getElementById('pixAnuncioPlantao').value;
     const observacoes = document.getElementById('observacoesPlantao').value;
 
     if (!plantaoId) {
@@ -491,7 +490,6 @@ async function publicarAnuncioPlantao(e) {
             tipo_publicacao: 'plantao',
             tipo_anuncio: tipoNegociacao,
             valor_minimo: valor ? parseFloat(valor) : null,
-            chave_pix: pix || null,
             observacoes: observacoes || null,
             status: 'ativo'
         };
@@ -674,7 +672,6 @@ function exibirMeusAnuncios(anuncios) {
                     </div>
                     ${a.observacoes ? `<div style="font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic;">"${a.observacoes}"</div>` : ''}
                     ${valorTexto}
-                    ${pixTexto}
                     <div style="margin-top: 12px;">
                         <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
                     </div>
