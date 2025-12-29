@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Troca Plantão FAMERP</title>
-    <link rel="stylesheet" href="css/style.css?v=12">
+    <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
     <div class="header">
@@ -55,9 +55,53 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Meus Dados</h2>
-                <button onclick="editarDados()" class="btn btn-sm btn-primary">Editar</button>
+                <div id="botoesAcaoDados">
+                    <button onclick="editarDados()" class="btn btn-sm btn-primary" id="btnEditar">✏️ Editar</button>
+                </div>
             </div>
-            <form id="formDados">
+
+            <!-- Modo Visualização -->
+            <div id="dadosVisualizacao" style="padding: 0;">
+                <div style="display: grid; gap: 16px;">
+                    <!-- Informações Pessoais -->
+                    <div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-md);">
+                        <h3 style="font-size: 14px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase;">
+                            👤 Informações Pessoais
+                        </h3>
+                        <div style="display: grid; gap: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Nome Completo</div>
+                                <div style="font-size: 16px; font-weight: 500;" id="nomeView">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">WhatsApp</div>
+                                <div style="font-size: 16px; font-weight: 500;" id="whatsappView">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Chave PIX</div>
+                                <div style="font-size: 16px; font-weight: 500;" id="pixView">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disponibilidade para Plantões -->
+                    <div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-md);">
+                        <h3 style="font-size: 14px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase;">
+                            📋 Disponibilidade para Plantões
+                        </h3>
+                        <div id="disponibilidadeView">
+                            <div style="font-size: 14px; color: var(--text-secondary);">Não disponível para pegar plantões</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modo Edição -->
+            <form id="formDados" style="display: none;">
+                <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                    <strong>📝 Modo Edição</strong> - Altere os dados e clique em Salvar
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="nome">Nome Completo</label>
@@ -78,13 +122,11 @@
                         <input type="text" id="chavePix2" placeholder="Digite novamente (sem colar)">
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="aceitaPlantoes">
-                            Estou disponível para pegar plantões
-                        </label>
-                    </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="aceitaPlantoes">
+                        Estou disponível para pegar plantões
+                    </label>
                 </div>
                 <div id="disponibilidadeDiv" style="display: none;">
                     <div class="form-row">
@@ -109,7 +151,10 @@
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Salvar Dados</button>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button type="button" onclick="cancelarEdicaoDados()" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salvar Dados</button>
+                </div>
             </form>
         </div>
 
@@ -223,10 +268,10 @@
     </div>
 
     <!-- Cliente Supabase customizado (sem CDN - funciona em qualquer navegador) -->
-    <script src="js/supabase-client.js?v=12"></script>
+    <script src="js/supabase-client.js?v=13"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="js/config.js?v=12"></script>
-    <script src="js/auth.js?v=12"></script>
+    <script src="js/config.js?v=13"></script>
+    <script src="js/auth.js?v=13"></script>
     <script>
         // TODO: Mover para dashboard.js
 
@@ -287,11 +332,13 @@
 
                 if (error) throw error;
 
-                // Preencher formulário
+                // Armazenar dados globalmente
+                window.dadosUsuario = data;
+
+                // Preencher formulário (modo edição)
                 if (data.nome) document.getElementById('nome').value = data.nome;
                 if (data.whatsapp) document.getElementById('whatsapp').value = data.whatsapp;
                 if (data.chave_pix) document.getElementById('chavePix').value = data.chave_pix;
-                // Não preencher o segundo campo de PIX por segurança
 
                 document.getElementById('aceitaPlantoes').checked = data.aceita_plantoes || false;
                 if (data.aceita_plantoes) {
@@ -301,10 +348,89 @@
                     document.getElementById('aceitaDiurno').checked = data.aceita_diurno || false;
                     document.getElementById('aceitaNoturno').checked = data.aceita_noturno || false;
                 }
+
+                // Atualizar visualização
+                atualizarVisualizacaoDados(data);
+
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 alert('Erro ao carregar dados do usuário');
             }
+        }
+
+        function atualizarVisualizacaoDados(data) {
+            // Informações Pessoais
+            document.getElementById('nomeView').textContent = data.nome || 'Não informado';
+            document.getElementById('whatsappView').textContent = data.whatsapp || 'Não informado';
+            document.getElementById('pixView').textContent = data.chave_pix || 'Não informado';
+
+            // Disponibilidade para Plantões
+            const dispView = document.getElementById('disponibilidadeView');
+            if (data.aceita_plantoes) {
+                const turnos = [];
+                if (data.aceita_diurno) turnos.push('Diurno');
+                if (data.aceita_noturno) turnos.push('Noturno');
+                const turnoTexto = turnos.length > 0 ? turnos.join(' e ') : 'Não especificado';
+
+                const valorTexto = data.valor_plantao && data.valor_plantao > 0
+                    ? `R$ ${parseFloat(data.valor_plantao).toFixed(2)}`
+                    : 'Gratuito ou apenas trocas';
+
+                dispView.innerHTML = `
+                    <div style="display: grid; gap: 12px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Status</div>
+                            <div style="font-size: 16px; font-weight: 500; color: var(--success);">✅ Disponível</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Valor por Plantão</div>
+                            <div style="font-size: 16px; font-weight: 500;">${valorTexto}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Quantidade</div>
+                            <div style="font-size: 16px; font-weight: 500;">${data.quantidade_plantoes_aceita || 'Não especificado'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Turnos</div>
+                            <div style="font-size: 16px; font-weight: 500;">${turnoTexto}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                dispView.innerHTML = '<div style="font-size: 14px; color: var(--text-secondary);">❌ Não disponível para pegar plantões</div>';
+            }
+        }
+
+        function editarDados() {
+            // Esconder visualização e mostrar formulário
+            document.getElementById('dadosVisualizacao').style.display = 'none';
+            document.getElementById('formDados').style.display = 'block';
+        }
+
+        function cancelarEdicaoDados() {
+            // Recarregar dados originais
+            if (window.dadosUsuario) {
+                const data = window.dadosUsuario;
+                document.getElementById('nome').value = data.nome || '';
+                document.getElementById('whatsapp').value = data.whatsapp || '';
+                document.getElementById('chavePix').value = data.chave_pix || '';
+                document.getElementById('chavePix2').value = '';
+                document.getElementById('aceitaPlantoes').checked = data.aceita_plantoes || false;
+
+                if (data.aceita_plantoes) {
+                    document.getElementById('disponibilidadeDiv').style.display = 'block';
+                    document.getElementById('valorPlantao').value = data.valor_plantao || '';
+                    document.getElementById('quantidadePlantoes').value = data.quantidade_plantoes_aceita || '';
+                    document.getElementById('aceitaDiurno').checked = data.aceita_diurno || false;
+                    document.getElementById('aceitaNoturno').checked = data.aceita_noturno || false;
+                } else {
+                    document.getElementById('disponibilidadeDiv').style.display = 'none';
+                }
+            }
+
+            // Voltar para visualização
+            document.getElementById('formDados').style.display = 'none';
+            document.getElementById('dadosVisualizacao').style.display = 'block';
         }
 
         async function carregarEventos() {
@@ -561,24 +687,38 @@
             }
 
             try {
+                const dadosAtualizados = {
+                    nome: document.getElementById('nome').value,
+                    whatsapp: document.getElementById('whatsapp').value,
+                    chave_pix: chavePix || null,
+                    aceita_plantoes: document.getElementById('aceitaPlantoes').checked,
+                    valor_plantao: document.getElementById('valorPlantao').value || null,
+                    quantidade_plantoes_aceita: document.getElementById('quantidadePlantoes').value || null,
+                    aceita_diurno: document.getElementById('aceitaDiurno').checked,
+                    aceita_noturno: document.getElementById('aceitaNoturno').checked
+                };
+
                 const { error } = await supabase
                     .from('usuarios')
-                    .update({
-                        nome: document.getElementById('nome').value,
-                        whatsapp: document.getElementById('whatsapp').value,
-                        chave_pix: chavePix || null,
-                        aceita_plantoes: document.getElementById('aceitaPlantoes').checked,
-                        valor_plantao: document.getElementById('valorPlantao').value || null,
-                        quantidade_plantoes_aceita: document.getElementById('quantidadePlantoes').value || null,
-                        aceita_diurno: document.getElementById('aceitaDiurno').checked,
-                        aceita_noturno: document.getElementById('aceitaNoturno').checked
-                    })
+                    .update(dadosAtualizados)
                     .eq('id', usuario.id);
 
                 if (error) throw error;
 
-                alert('Dados salvos com sucesso!');
-                document.getElementById('chavePix2').value = ''; // Limpar confirmação
+                // Atualizar dados globais
+                window.dadosUsuario = { ...window.dadosUsuario, ...dadosAtualizados };
+
+                // Atualizar visualização
+                atualizarVisualizacaoDados(window.dadosUsuario);
+
+                // Limpar campo de confirmação PIX
+                document.getElementById('chavePix2').value = '';
+
+                // Voltar para modo visualização
+                document.getElementById('formDados').style.display = 'none';
+                document.getElementById('dadosVisualizacao').style.display = 'block';
+
+                alert('✅ Dados salvos com sucesso!');
             } catch (error) {
                 console.error('Erro ao salvar dados:', error);
                 alert('Erro ao salvar dados');
