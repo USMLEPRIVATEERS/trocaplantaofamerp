@@ -224,12 +224,6 @@ function exibirAnuncios(anuncios) {
                         ${valorTexto}
                     </div>
 
-                    ${anuncio.observacoes ? `
-                        <div style="font-size: 14px; color: #666; margin: 12px 0; font-style: italic;">
-                            "${anuncio.observacoes}"
-                        </div>
-                    ` : ''}
-
                     <button onclick="abrirModalOferta('${anuncio.id}')" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
                         Fazer Oferta
                     </button>
@@ -512,7 +506,6 @@ async function publicarAnuncioPlantao(e) {
     const plantaoId = document.getElementById('plantaoAnunciar').value;
     const tipoNegociacao = document.querySelector('input[name="tipoNegociacaoPlantao"]:checked').value;
     const valor = document.getElementById('valorAnuncioPlantao').value;
-    const observacoes = document.getElementById('observacoesPlantao').value;
 
     if (!plantaoId) {
         mostrarMensagem('Selecione um plantão', 'warning');
@@ -523,10 +516,8 @@ async function publicarAnuncioPlantao(e) {
         const anuncioData = {
             usuario_id: usuarioAtual.id,
             plantao_id: plantaoId,
-            tipo_publicacao: 'plantao',
             tipo_anuncio: tipoNegociacao,
             valor_minimo: valor ? parseFloat(valor) : null,
-            observacoes: observacoes || null,
             status: 'ativo'
         };
 
@@ -588,7 +579,6 @@ async function publicarAnuncioDisponibilidade(e) {
     try {
         const anuncioData = {
             usuario_id: usuarioAtual.id,
-            tipo_publicacao: 'disponibilidade',
             titulo: titulo,
             descricao: descricao,
             tipo_anuncio: tipoNegociacao,
@@ -712,7 +702,6 @@ function exibirMeusAnuncios(anuncios) {
                             <div>📚 Módulo: ${plantao.modulo}</div>
                         </div>
                     </div>
-                    ${a.observacoes ? `<div style="font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic;">"${a.observacoes}"</div>` : ''}
                     ${valorTexto}
                     <div style="margin-top: 12px;">
                         <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
