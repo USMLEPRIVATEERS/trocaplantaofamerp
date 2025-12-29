@@ -69,12 +69,48 @@ async function carregarAnuncios() {
         }
 
         todosAnuncios = anuncios || [];
+        atualizarFiltrosDinamicos();
         aplicarFiltros();
 
     } catch (error) {
         console.error('Erro ao carregar anúncios:', error);
         mostrarMensagem('Erro ao carregar anúncios', 'error');
     }
+}
+
+function atualizarFiltrosDinamicos() {
+    // Extrair tipos de plantão únicos dos anúncios com plantão
+    const tiposPlantao = new Set();
+    const modulos = new Set();
+
+    todosAnuncios.forEach(anuncio => {
+        if (anuncio.plantao) {
+            if (anuncio.plantao.tipo) {
+                tiposPlantao.add(anuncio.plantao.tipo);
+            }
+            if (anuncio.plantao.modulo) {
+                modulos.add(anuncio.plantao.modulo);
+            }
+        }
+    });
+
+    // Atualizar filtro de Tipo de Plantão
+    const filtroTipoPlantao = document.getElementById('filtroTipoPlantao');
+    const valorAtualTipo = filtroTipoPlantao.value;
+    filtroTipoPlantao.innerHTML = '<option value="">Todos</option>' +
+        Array.from(tiposPlantao).sort().map(tipo =>
+            `<option value="${tipo}">${tipo}</option>`
+        ).join('');
+    filtroTipoPlantao.value = valorAtualTipo; // Manter seleção anterior se existir
+
+    // Atualizar filtro de Módulo
+    const filtroModulo = document.getElementById('filtroModulo');
+    const valorAtualModulo = filtroModulo.value;
+    filtroModulo.innerHTML = '<option value="">Todos</option>' +
+        Array.from(modulos).sort().map(modulo =>
+            `<option value="${modulo}">${modulo}</option>`
+        ).join('');
+    filtroModulo.value = valorAtualModulo; // Manter seleção anterior se existir
 }
 
 function aplicarFiltros() {
@@ -507,7 +543,10 @@ async function publicarAnuncioPlantao(e) {
 
     } catch (error) {
         console.error('Erro ao publicar anúncio:', error);
-        mostrarMensagem('Erro ao publicar anúncio. Tente novamente.', 'error');
+        console.error('Mensagem:', error.message);
+        console.error('Código:', error.code);
+        console.error('Detalhes:', error.details);
+        mostrarMensagem(`Erro ao publicar anúncio: ${error.message || 'Tente novamente'}`, 'error');
     }
 }
 
@@ -572,7 +611,10 @@ async function publicarAnuncioDisponibilidade(e) {
 
     } catch (error) {
         console.error('Erro ao publicar anúncio:', error);
-        mostrarMensagem('Erro ao publicar anúncio. Tente novamente.', 'error');
+        console.error('Mensagem:', error.message);
+        console.error('Código:', error.code);
+        console.error('Detalhes:', error.details);
+        mostrarMensagem(`Erro ao publicar anúncio: ${error.message || 'Tente novamente'}`, 'error');
     }
 }
 

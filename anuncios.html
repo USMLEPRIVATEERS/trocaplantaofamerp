@@ -35,30 +35,24 @@
                     <label>Tipo de Anúncio</label>
                     <select id="filtroTipoAnuncio" onchange="aplicarFiltros()">
                         <option value="">Todos</option>
-                        <option value="troca">Troca</option>
-                        <option value="pagamento">Venda</option>
-                        <option value="ambos">Ambos</option>
+                        <option value="troca">🔄 Troca</option>
+                        <option value="pago">💸 Pago para pegar</option>
+                        <option value="recebo">💰 Recebo para pegar</option>
+                        <option value="ambos">🔄💰 Troca ou Pagamento</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Tipo de Plantão</label>
                     <select id="filtroTipoPlantao" onchange="aplicarFiltros()">
                         <option value="">Todos</option>
-                        <option value="PA Cirurgia">PA Cirurgia</option>
-                        <option value="PA Clínica">PA Clínica</option>
-                        <option value="Centro Obstétrico">Centro Obstétrico</option>
-                        <option value="UPA">UPA</option>
+                        <!-- Opções carregadas dinamicamente -->
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Módulo</label>
                     <select id="filtroModulo" onchange="aplicarFiltros()">
                         <option value="">Todos</option>
-                        <option value="CIRURGIA">Cirurgia</option>
-                        <option value="CLÍNICA">Clínica</option>
-                        <option value="PED">Pediatria</option>
-                        <option value="GO">GO</option>
-                        <option value="ESPECIALIDADES">Especialidades</option>
+                        <!-- Opções carregadas dinamicamente -->
                     </select>
                 </div>
             </div>
@@ -263,10 +257,10 @@
     <div id="mensagem" class="mensagem"></div>
 
     <!-- Cliente Supabase customizado (sem CDN - funciona em qualquer navegador) -->
-    <script src="js/supabase-client.js?v=17"></script>
-    <script src="js/config.js?v=17"></script>
-    <script src="js/auth.js?v=17"></script>
-    <script src="js/trocas.js?v=17"></script>
-    <script src="js/anuncios.js?v=17"></script>
+    <script src="js/supabase-client.js?v=18"></script>
+    <script src="js/config.js?v=18"></script>
+    <script src="js/auth.js?v=18"></script>
+    <script src="js/trocas.js?v=18"></script>
+    <script src="js/anuncios.js?v=18"></script>
 </body>
 </html>
