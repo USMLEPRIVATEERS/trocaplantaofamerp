@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Carregar dados
     await carregarAnuncios();
-    await carregarDisponibilidades();
+    await carregarMeusAnuncios();
 });
 
 // =============================================
@@ -337,165 +337,165 @@ async function enviarOferta(e) {
 }
 
 // =============================================
-// DISPONIBILIDADE
+// CRIAR ANÚNCIO
 // =============================================
 
-async function carregarDisponibilidades() {
-    try {
-        // Tentar carregar disponibilidades básicas
-        const { data: disponibilidades, error } = await supabase
-            .from('periodos_disponibilidade')
-            .select('*')
-            .eq('usuario_id', usuarioAtual.id)
-            .eq('ativo', true);
+function abrirModalCriarAnuncio() {
+    document.getElementById('formCriarAnuncio').reset();
+    document.getElementById('camposPagamento').style.display = 'none';
+    document.getElementById('modalCriarAnuncio').classList.add('show');
+}
 
-        if (error) {
-            console.error('Erro ao carregar disponibilidades:', error);
-            console.error('Mensagem:', error.message);
-            console.error('Código:', error.code);
-            // Se a tabela não existir, apenas exibir vazio
-            if (error.code === 'PGRST204' || error.code === '42P01') {
-                exibirDisponibilidades([]);
-                return;
-            }
-            throw error;
-        }
+function fecharModalCriarAnuncio() {
+    document.getElementById('modalCriarAnuncio').classList.remove('show');
+}
 
-        // Carregar especialidades separadamente se houver disponibilidades
-        if (disponibilidades && disponibilidades.length > 0) {
-            for (let disp of disponibilidades) {
-                const { data: especialidades } = await supabase
-                    .from('especialidades_aceitas')
-                    .select('*')
-                    .eq('disponibilidade_id', disp.id);
-                disp.especialidades = especialidades || [];
-            }
-        }
+function toggleCamposPagamento() {
+    const tipo = document.querySelector('input[name="tipoNegociacao"]:checked').value;
+    const camposPagamento = document.getElementById('camposPagamento');
 
-        exibirDisponibilidades(disponibilidades || []);
-
-    } catch (error) {
-        console.error('Erro ao carregar disponibilidades:', error);
-        // Exibir vazio em caso de erro
-        exibirDisponibilidades([]);
+    if (tipo === 'venda' || tipo === 'ambos') {
+        camposPagamento.style.display = 'block';
+    } else {
+        camposPagamento.style.display = 'none';
     }
 }
 
-function exibirDisponibilidades(disponibilidades) {
-    const container = document.getElementById('minhasDisponibilidades');
+async function publicarNovoAnuncio(e) {
+    e.preventDefault();
 
-    if (disponibilidades.length === 0) {
-        container.innerHTML = '<div style="color: #666; font-style: italic;">Você ainda não anunciou disponibilidade</div>';
+    const titulo = document.getElementById('anuncioTitulo').value;
+    const descricao = document.getElementById('anuncioDescricao').value;
+    const tipoNegociacao = document.querySelector('input[name="tipoNegociacao"]:checked').value;
+    const valor = document.getElementById('valorAnuncio').value;
+    const pix = document.getElementById('pixAnuncio').value;
+    const contato = document.getElementById('contatoAnuncio').value;
+
+    try {
+        const anuncioData = {
+            usuario_id: usuarioAtual.id,
+            titulo: titulo,
+            descricao: descricao,
+            tipo_anuncio: tipoNegociacao,
+            valor_minimo: valor ? parseFloat(valor) : null,
+            chave_pix: pix || null,
+            contato: contato || null,
+            status: 'ativo'
+        };
+
+        const { error } = await supabase
+            .from('anuncios')
+            .insert([anuncioData]);
+
+        if (error) throw error;
+
+        mostrarMensagem('✅ Anúncio publicado com sucesso!', 'success');
+        fecharModalCriarAnuncio();
+        await carregarAnuncios();
+        await carregarMeusAnuncios();
+
+    } catch (error) {
+        console.error('Erro ao publicar anúncio:', error);
+        mostrarMensagem('Erro ao publicar anúncio. Tente novamente.', 'error');
+    }
+}
+
+// =============================================
+// CARREGAR MEUS ANÚNCIOS
+// =============================================
+
+async function carregarMeusAnuncios() {
+    try {
+        const { data: anuncios, error } = await supabase
+            .from('anuncios')
+            .select('*')
+            .eq('usuario_id', usuarioAtual.id)
+            .eq('status', 'ativo')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        exibirMeusAnuncios(anuncios || []);
+
+    } catch (error) {
+        console.error('Erro ao carregar meus anúncios:', error);
+        document.getElementById('meusAnuncios').innerHTML =
+            '<div style="color: #666; font-style: italic;">Erro ao carregar seus anúncios</div>';
+    }
+}
+
+function exibirMeusAnuncios(anuncios) {
+    const container = document.getElementById('meusAnuncios');
+
+    if (anuncios.length === 0) {
+        container.innerHTML = '<div style="color: #666; font-style: italic;">Você ainda não tem anúncios ativos</div>';
         return;
     }
 
-    container.innerHTML = disponibilidades.map(d => {
-        const especialidadesTexto = d.especialidades && d.especialidades.length > 0 ?
-            d.especialidades.map(e => e.especialidade).join(', ') :
-            'Todas';
+    container.innerHTML = anuncios.map(a => {
+        const tipoTexto = a.tipo_anuncio === 'troca' ? '🔄 Troca' :
+                          a.tipo_anuncio === 'venda' ? '💰 Venda' :
+                          '🔄💰 Troca ou Venda';
+        const tipoColor = a.tipo_anuncio === 'troca' ? '#0066cc' :
+                          a.tipo_anuncio === 'venda' ? '#009900' :
+                          '#cc6600';
+
+        const valorTexto = a.valor_minimo && a.valor_minimo > 0 ?
+            `<div style="margin-top: 8px; color: #009900; font-weight: 600;">💵 A partir de R$ ${a.valor_minimo.toFixed(2)}</div>` : '';
+
+        const pixTexto = a.chave_pix ?
+            `<div style="margin-top: 4px; font-size: 13px; color: #666;">PIX: ${a.chave_pix}</div>` : '';
+
+        const contatoTexto = a.contato ?
+            `<div style="margin-top: 4px; font-size: 13px; color: #666;">📱 ${a.contato}</div>` : '';
+
+        const dataTexto = new Date(a.created_at).toLocaleDateString('pt-BR');
 
         return `
             <div class="card" style="padding: 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <div style="font-weight: bold;">Período ${d.periodo}</div>
-                        <div style="font-size: 14px; color: #666; margin-top: 4px;">
-                            Especialidades: ${especialidadesTexto}
-                        </div>
-                        ${d.aceita_pagamento ? '<div style="font-size: 14px; color: #009900; margin-top: 4px;">💰 Aceita pagamento</div>' : ''}
-                        ${d.observacoes ? `<div style="font-size: 14px; color: #666; margin-top: 8px; font-style: italic;">"${d.observacoes}"</div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${a.titulo}</div>
+                        <div style="font-size: 12px; color: #999;">Publicado em ${dataTexto}</div>
                     </div>
-                    <button onclick="removerDisponibilidade('${d.id}')" class="btn btn-sm" style="background: #cc0000; color: white;">
-                        Remover
-                    </button>
+                    <div style="background: ${tipoColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; margin-left: 8px;">
+                        ${tipoTexto}
+                    </div>
+                </div>
+                <div style="background: #f8f8f8; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                    <div style="font-size: 14px; white-space: pre-wrap;">${a.descricao}</div>
+                </div>
+                ${valorTexto}
+                ${pixTexto}
+                ${contatoTexto}
+                <div style="margin-top: 12px;">
+                    <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-function abrirModalDisponibilidade() {
-    document.getElementById('formDisponibilidade').reset();
-    document.getElementById('modalDisponibilidade').style.display = 'flex';
-}
-
-function fecharModalDisponibilidade() {
-    document.getElementById('modalDisponibilidade').style.display = 'none';
-}
-
-async function salvarDisponibilidade(e) {
-    e.preventDefault();
-
-    const periodo = document.getElementById('periodoDisponivel').value;
-    const aceitaPagamento = document.getElementById('aceitaPagamento').value === 'true';
-    const observacoes = document.getElementById('observacoes').value;
-
-    const especialidadesSelecionadas = Array.from(
-        document.querySelectorAll('input[name="especialidade"]:checked')
-    ).map(cb => cb.value);
-
-    if (especialidadesSelecionadas.length === 0) {
-        mostrarMensagem('Selecione pelo menos uma especialidade', 'warning');
-        return;
-    }
-
-    try {
-        // Inserir disponibilidade
-        const { data: disponibilidade, error: errorDisp } = await supabase
-            .from('periodos_disponibilidade')
-            .insert([{
-                usuario_id: usuarioAtual.id,
-                periodo: parseInt(periodo),
-                aceita_pagamento: aceitaPagamento,
-                observacoes: observacoes || null,
-                ativo: true
-            }])
-            .select()
-            .single();
-
-        if (errorDisp) throw errorDisp;
-
-        // Inserir especialidades aceitas
-        const especialidadesData = especialidadesSelecionadas.map(esp => ({
-            disponibilidade_id: disponibilidade.id,
-            especialidade: esp
-        }));
-
-        const { error: errorEsp } = await supabase
-            .from('especialidades_aceitas')
-            .insert(especialidadesData);
-
-        if (errorEsp) throw errorEsp;
-
-        mostrarMensagem('Disponibilidade anunciada com sucesso!', 'success');
-        fecharModalDisponibilidade();
-        await carregarDisponibilidades();
-
-    } catch (error) {
-        console.error('Erro ao salvar disponibilidade:', error);
-        mostrarMensagem('Erro ao salvar disponibilidade', 'error');
-    }
-}
-
-async function removerDisponibilidade(id) {
-    if (!confirm('Deseja realmente remover este anúncio de disponibilidade?')) {
+async function removerAnuncio(id) {
+    if (!confirm('Deseja realmente remover este anúncio?')) {
         return;
     }
 
     try {
         const { error } = await supabase
-            .from('periodos_disponibilidade')
-            .update({ ativo: false })
+            .from('anuncios')
+            .update({ status: 'inativo' })
             .eq('id', id);
 
         if (error) throw error;
 
-        mostrarMensagem('Disponibilidade removida', 'success');
-        await carregarDisponibilidades();
+        mostrarMensagem('Anúncio removido com sucesso!', 'success');
+        await carregarAnuncios();
+        await carregarMeusAnuncios();
 
     } catch (error) {
-        console.error('Erro ao remover disponibilidade:', error);
-        mostrarMensagem('Erro ao remover disponibilidade', 'error');
+        console.error('Erro ao remover anúncio:', error);
+        mostrarMensagem('Erro ao remover anúncio', 'error');
     }
 }
 
@@ -515,13 +515,11 @@ function mostrarMensagem(texto, tipo) {
 
 // Fechar modais ao clicar fora
 window.onclick = function(event) {
-    const modalOferta = document.getElementById('modalOferta');
-    const modalDisponibilidade = document.getElementById('modalDisponibilidade');
-
-    if (event.target === modalOferta) {
-        fecharModalOferta();
-    }
-    if (event.target === modalDisponibilidade) {
-        fecharModalDisponibilidade();
+    if (event.target.classList.contains('modal')) {
+        if (event.target.id === 'modalOferta') {
+            fecharModalOferta();
+        } else if (event.target.id === 'modalCriarAnuncio') {
+            fecharModalCriarAnuncio();
+        }
     }
 }
