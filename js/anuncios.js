@@ -26,14 +26,47 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 async function carregarAnuncios() {
     try {
+        // Primeiro, tentar carregar anúncios básicos sem relacionamentos
         const { data: anuncios, error } = await supabase
             .from('anuncios')
-            .select('*, usuario:usuarios!usuario_id(numero_chamada, nome, serie), plantao:plantoes!plantao_id(id, tipo, data, turno, modulo, local)')
+            .select('*')
             .eq('status', 'ativo')
             .neq('usuario_id', usuarioAtual.id)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Erro detalhado ao carregar anúncios:', error);
+            console.error('Mensagem:', error.message);
+            console.error('Código:', error.code);
+            throw error;
+        }
+
+        console.log('Anúncios carregados (básicos):', anuncios);
+
+        // Carregar dados relacionados separadamente
+        if (anuncios && anuncios.length > 0) {
+            for (let anuncio of anuncios) {
+                // Carregar usuário
+                if (anuncio.usuario_id) {
+                    const { data: usuario } = await supabase
+                        .from('usuarios')
+                        .select('numero_chamada, nome, serie')
+                        .eq('id', anuncio.usuario_id)
+                        .single();
+                    anuncio.usuario = usuario;
+                }
+
+                // Carregar plantão
+                if (anuncio.plantao_id) {
+                    const { data: plantao } = await supabase
+                        .from('plantoes')
+                        .select('id, tipo, data, turno, modulo, local')
+                        .eq('id', anuncio.plantao_id)
+                        .single();
+                    anuncio.plantao = plantao;
+                }
+            }
+        }
 
         todosAnuncios = anuncios || [];
         aplicarFiltros();
@@ -309,18 +342,42 @@ async function enviarOferta(e) {
 
 async function carregarDisponibilidades() {
     try {
+        // Tentar carregar disponibilidades básicas
         const { data: disponibilidades, error } = await supabase
             .from('periodos_disponibilidade')
-            .select('*, especialidades:especialidades_aceitas(*)')
+            .select('*')
             .eq('usuario_id', usuarioAtual.id)
             .eq('ativo', true);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Erro ao carregar disponibilidades:', error);
+            console.error('Mensagem:', error.message);
+            console.error('Código:', error.code);
+            // Se a tabela não existir, apenas exibir vazio
+            if (error.code === 'PGRST204' || error.code === '42P01') {
+                exibirDisponibilidades([]);
+                return;
+            }
+            throw error;
+        }
+
+        // Carregar especialidades separadamente se houver disponibilidades
+        if (disponibilidades && disponibilidades.length > 0) {
+            for (let disp of disponibilidades) {
+                const { data: especialidades } = await supabase
+                    .from('especialidades_aceitas')
+                    .select('*')
+                    .eq('disponibilidade_id', disp.id);
+                disp.especialidades = especialidades || [];
+            }
+        }
 
         exibirDisponibilidades(disponibilidades || []);
 
     } catch (error) {
         console.error('Erro ao carregar disponibilidades:', error);
+        // Exibir vazio em caso de erro
+        exibirDisponibilidades([]);
     }
 }
 
