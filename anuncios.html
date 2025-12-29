@@ -68,10 +68,13 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Plantões Disponíveis</h2>
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <span id="contadorAnuncios">0 anúncios</span>
-                    <button onclick="abrirModalCriarAnuncio()" class="btn btn-sm btn-primary">
-                        ➕ Criar Anúncio
+                    <button onclick="abrirModalAnunciarPlantao()" class="btn btn-sm btn-primary">
+                        📋 Anunciar Plantão
+                    </button>
+                    <button onclick="abrirModalAnunciarDisponibilidade()" class="btn btn-sm" style="background: #28a745; color: white;">
+                        ✋ Anunciar Disponibilidade
                     </button>
                 </div>
             </div>
@@ -91,58 +94,112 @@
         </div>
     </div>
 
-    <!-- Modal: Criar Anúncio -->
-    <div id="modalCriarAnuncio" class="modal">
+    <!-- Modal: Anunciar Plantão -->
+    <div id="modalAnunciarPlantao" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Criar Anúncio de Plantão</h3>
-                <button class="modal-close" onclick="fecharModalCriarAnuncio()">&times;</button>
+                <h3 class="modal-title">📋 Anunciar Plantão</h3>
+                <button class="modal-close" onclick="fecharModalAnunciarPlantao()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="formCriarAnuncio" onsubmit="publicarNovoAnuncio(event)">
+                <form id="formAnunciarPlantao" onsubmit="publicarAnuncioPlantao(event)">
                     <div class="form-group">
-                        <label for="anuncioTitulo">Título do Anúncio *</label>
-                        <input type="text" id="anuncioTitulo" required placeholder="Ex: Plantão PA Cirurgia - 15/01">
+                        <label for="plantaoAnunciar">Selecione o Plantão *</label>
+                        <select id="plantaoAnunciar" required>
+                            <option value="">Carregando seus plantões...</option>
+                        </select>
+                        <small>Escolha um plantão da sua agenda para anunciar</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo de Negociação *</label>
+                        <div>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="troca" checked onchange="toggleCamposPagamentoPlantao()"> Apenas Troca</label><br>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="venda" onchange="toggleCamposPagamentoPlantao()"> Apenas Venda</label><br>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="ambos" onchange="toggleCamposPagamentoPlantao()"> Aceito Ambos (Troca ou Venda)</label>
+                        </div>
+                    </div>
+
+                    <div id="camposPagamentoPlantao" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="valorAnuncioPlantao">Valor Mínimo (R$)</label>
+                                <input type="number" id="valorAnuncioPlantao" min="0" step="0.01" placeholder="0.00">
+                                <small>Deixe 0 ou vazio se não houver valor mínimo</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="pixAnuncioPlantao">Chave PIX (opcional)</label>
+                                <input type="text" id="pixAnuncioPlantao" placeholder="Sua chave PIX">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoesPlantao">Observações (opcional)</label>
+                        <textarea id="observacoesPlantao" rows="3" placeholder="Informações adicionais sobre o plantão..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" onclick="fecharModalAnunciarPlantao()" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">📢 Publicar Anúncio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Anunciar Disponibilidade -->
+    <div id="modalAnunciarDisponibilidade" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">✋ Anunciar Disponibilidade</h3>
+                <button class="modal-close" onclick="fecharModalAnunciarDisponibilidade()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formAnunciarDisponibilidade" onsubmit="publicarAnuncioDisponibilidade(event)">
+                    <div class="form-group">
+                        <label for="disponibilidadeTitulo">Título do Anúncio *</label>
+                        <input type="text" id="disponibilidadeTitulo" required placeholder="Ex: Disponível para pegar plantões de PA">
                         <small>Seja claro e objetivo</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="anuncioDescricao">Descrição *</label>
-                        <textarea id="anuncioDescricao" rows="4" required placeholder="Descreva o plantão: tipo, data, turno, local, módulo, etc."></textarea>
+                        <label for="disponibilidadeDescricao">Descrição *</label>
+                        <textarea id="disponibilidadeDescricao" rows="4" required placeholder="Descreva sua disponibilidade: quais plantões aceita, períodos, preferências, etc."></textarea>
                         <small>Inclua todos os detalhes importantes</small>
                     </div>
 
                     <div class="form-group">
                         <label>Tipo de Negociação *</label>
                         <div>
-                            <label><input type="radio" name="tipoNegociacao" value="troca" checked onchange="toggleCamposPagamento()"> Apenas Troca</label><br>
-                            <label><input type="radio" name="tipoNegociacao" value="venda" onchange="toggleCamposPagamento()"> Apenas Venda</label><br>
-                            <label><input type="radio" name="tipoNegociacao" value="ambos" onchange="toggleCamposPagamento()"> Aceito Ambos (Troca ou Venda)</label>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="troca" checked onchange="toggleCamposPagamentoDisponibilidade()"> Apenas Troca</label><br>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="venda" onchange="toggleCamposPagamentoDisponibilidade()"> Apenas Venda</label><br>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="ambos" onchange="toggleCamposPagamentoDisponibilidade()"> Aceito Ambos (Troca ou Venda)</label>
                         </div>
                     </div>
 
-                    <div id="camposPagamento" style="display: none;">
+                    <div id="camposPagamentoDisponibilidade" style="display: none;">
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="valorAnuncio">Valor Mínimo (R$)</label>
-                                <input type="number" id="valorAnuncio" min="0" step="0.01" placeholder="0.00">
+                                <label for="valorDisponibilidade">Valor Mínimo (R$)</label>
+                                <input type="number" id="valorDisponibilidade" min="0" step="0.01" placeholder="0.00">
                                 <small>Deixe 0 ou vazio se não houver valor mínimo</small>
                             </div>
                             <div class="form-group">
-                                <label for="pixAnuncio">Chave PIX (opcional)</label>
-                                <input type="text" id="pixAnuncio" placeholder="Sua chave PIX">
+                                <label for="pixDisponibilidade">Chave PIX (opcional)</label>
+                                <input type="text" id="pixDisponibilidade" placeholder="Sua chave PIX">
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="contatoAnuncio">Contato (WhatsApp, Email, etc.)</label>
-                        <input type="text" id="contatoAnuncio" placeholder="(00) 00000-0000">
+                        <label for="contatoDisponibilidade">Contato (WhatsApp, Email, etc.)</label>
+                        <input type="text" id="contatoDisponibilidade" placeholder="(00) 00000-0000">
                         <small>Como as pessoas devem entrar em contato com você</small>
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" onclick="fecharModalCriarAnuncio()" class="btn btn-secondary">Cancelar</button>
+                        <button type="button" onclick="fecharModalAnunciarDisponibilidade()" class="btn btn-secondary">Cancelar</button>
                         <button type="submit" class="btn btn-primary">📢 Publicar Anúncio</button>
                     </div>
                 </form>
@@ -205,10 +262,10 @@
     <div id="mensagem" class="mensagem"></div>
 
     <!-- Cliente Supabase customizado (sem CDN - funciona em qualquer navegador) -->
-    <script src="js/supabase-client.js?v=14"></script>
-    <script src="js/config.js?v=14"></script>
-    <script src="js/auth.js?v=14"></script>
-    <script src="js/trocas.js?v=14"></script>
-    <script src="js/anuncios.js?v=14"></script>
+    <script src="js/supabase-client.js?v=15"></script>
+    <script src="js/config.js?v=15"></script>
+    <script src="js/auth.js?v=15"></script>
+    <script src="js/trocas.js?v=15"></script>
+    <script src="js/anuncios.js?v=15"></script>
 </body>
 </html>

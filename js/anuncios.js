@@ -83,9 +83,18 @@ function aplicarFiltros() {
     const modulo = document.getElementById('filtroModulo').value;
 
     let anunciosFiltrados = todosAnuncios.filter(anuncio => {
+        // Filtro de tipo de anúncio
         if (tipoAnuncio && anuncio.tipo_anuncio !== tipoAnuncio) return false;
-        if (tipoPlantao && anuncio.plantao.tipo !== tipoPlantao) return false;
-        if (modulo && anuncio.plantao.modulo !== modulo) return false;
+
+        // Filtros de plantão só funcionam para anúncios que TÊM plantão
+        if (anuncio.plantao) {
+            if (tipoPlantao && anuncio.plantao.tipo !== tipoPlantao) return false;
+            if (modulo && anuncio.plantao.modulo !== modulo) return false;
+        } else {
+            // Se o filtro de plantão/módulo está ativo mas o anúncio não tem plantão, ocultar
+            if (tipoPlantao || modulo) return false;
+        }
+
         return true;
     });
 
@@ -115,10 +124,7 @@ function exibirAnuncios(anuncios) {
     }
 
     container.innerHTML = anuncios.map(anuncio => {
-        const plantao = anuncio.plantao;
         const usuario = anuncio.usuario;
-        const dataPlantao = new Date(plantao.data);
-        const dataFormatada = dataPlantao.toLocaleDateString('pt-BR');
 
         let tipoAnuncioTexto = '';
         let tipoAnuncioCor = '';
@@ -126,7 +132,7 @@ function exibirAnuncios(anuncios) {
         if (anuncio.tipo_anuncio === 'troca') {
             tipoAnuncioTexto = '🔄 Troca';
             tipoAnuncioCor = '#0066cc';
-        } else if (anuncio.tipo_anuncio === 'pagamento') {
+        } else if (anuncio.tipo_anuncio === 'venda' || anuncio.tipo_anuncio === 'pagamento') {
             tipoAnuncioTexto = '💰 Venda';
             tipoAnuncioCor = '#009900';
         } else {
@@ -139,46 +145,94 @@ function exibirAnuncios(anuncios) {
                 💵 A partir de R$ ${anuncio.valor_minimo.toFixed(2)}
             </div>` : '';
 
-        return `
-            <div class="card" style="padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div>
-                        <div style="font-weight: bold; font-size: 16px;">
-                            ${usuario.nome || `Aluno #${usuario.numero_chamada}`}
+        // Se tem plantão (anúncio de plantão específico)
+        if (anuncio.plantao) {
+            const plantao = anuncio.plantao;
+            const dataPlantao = new Date(plantao.data);
+            const dataFormatada = dataPlantao.toLocaleDateString('pt-BR');
+
+            return `
+                <div class="card" style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 16px;">
+                                ${usuario.nome || `Aluno #${usuario.numero_chamada}`}
+                            </div>
+                            <div style="font-size: 14px; color: #666;">
+                                #${usuario.numero_chamada} · ${usuario.serie}ª série
+                            </div>
                         </div>
-                        <div style="font-size: 14px; color: #666;">
-                            #${usuario.numero_chamada} · ${usuario.serie}ª série
+                        <div style="background: ${tipoAnuncioCor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                            ${tipoAnuncioTexto}
                         </div>
                     </div>
-                    <div style="background: ${tipoAnuncioCor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                        ${tipoAnuncioTexto}
+
+                    <div style="background: #f8f8f8; padding: 16px; border-radius: 8px; margin: 12px 0;">
+                        <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">
+                            ${plantao.tipo}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 14px;">
+                            <div>📅 ${dataFormatada}</div>
+                            <div>⏰ ${plantao.turno}</div>
+                            <div>📍 ${plantao.local || 'N/A'}</div>
+                            <div>📚 ${plantao.modulo}</div>
+                        </div>
+                        ${valorTexto}
                     </div>
+
+                    ${anuncio.observacoes ? `
+                        <div style="font-size: 14px; color: #666; margin: 12px 0; font-style: italic;">
+                            "${anuncio.observacoes}"
+                        </div>
+                    ` : ''}
+
+                    <button onclick="abrirModalOferta('${anuncio.id}')" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
+                        Fazer Oferta
+                    </button>
                 </div>
+            `;
+        } else {
+            // Anúncio de disponibilidade (sem plantão específico)
+            const contatoTexto = anuncio.contato ?
+                `<div style="font-size: 14px; color: #666; margin-top: 8px;">📱 ${anuncio.contato}</div>` : '';
 
-                <div style="background: #f8f8f8; padding: 16px; border-radius: 8px; margin: 12px 0;">
-                    <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">
-                        ${plantao.tipo}
+            const pixTexto = anuncio.chave_pix ?
+                `<div style="font-size: 14px; color: #666; margin-top: 4px;">PIX: ${anuncio.chave_pix}</div>` : '';
+
+            return `
+                <div class="card" style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 16px;">
+                                ${usuario.nome || `Aluno #${usuario.numero_chamada}`}
+                            </div>
+                            <div style="font-size: 14px; color: #666;">
+                                #${usuario.numero_chamada} · ${usuario.serie}ª série
+                            </div>
+                        </div>
+                        <div style="background: ${tipoAnuncioCor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                            ${tipoAnuncioTexto}
+                        </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 14px;">
-                        <div>📅 ${dataFormatada}</div>
-                        <div>⏰ ${plantao.turno}</div>
-                        <div>📍 ${plantao.local || 'N/A'}</div>
-                        <div>📚 ${plantao.modulo}</div>
+
+                    <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #28a745;">
+                        <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #28a745;">
+                            ✋ ${anuncio.titulo || 'Disponibilidade'}
+                        </div>
+                        <div style="font-size: 14px; white-space: pre-wrap;">
+                            ${anuncio.descricao || ''}
+                        </div>
+                        ${valorTexto}
+                        ${contatoTexto}
+                        ${pixTexto}
                     </div>
-                    ${valorTexto}
+
+                    <button onclick="abrirModalOferta('${anuncio.id}')" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
+                        Fazer Oferta
+                    </button>
                 </div>
-
-                ${anuncio.observacoes ? `
-                    <div style="font-size: 14px; color: #666; margin: 12px 0; font-style: italic;">
-                        "${anuncio.observacoes}"
-                    </div>
-                ` : ''}
-
-                <button onclick="abrirModalOferta('${anuncio.id}')" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
-                    Fazer Oferta
-                </button>
-            </div>
-        `;
+            `;
+        }
     }).join('');
 }
 
@@ -337,22 +391,49 @@ async function enviarOferta(e) {
 }
 
 // =============================================
-// CRIAR ANÚNCIO
+// ANUNCIAR PLANTÃO
 // =============================================
 
-function abrirModalCriarAnuncio() {
-    document.getElementById('formCriarAnuncio').reset();
-    document.getElementById('camposPagamento').style.display = 'none';
-    document.getElementById('modalCriarAnuncio').classList.add('show');
+async function abrirModalAnunciarPlantao() {
+    document.getElementById('formAnunciarPlantao').reset();
+    document.getElementById('camposPagamentoPlantao').style.display = 'none';
+
+    // Carregar plantões do usuário
+    try {
+        const { data: plantoes, error } = await supabase
+            .from('plantoes')
+            .select('*')
+            .eq('usuario_id', usuarioAtual.id)
+            .gte('data', new Date().toISOString().split('T')[0])
+            .order('data', { ascending: true });
+
+        if (error) throw error;
+
+        const select = document.getElementById('plantaoAnunciar');
+
+        if (!plantoes || plantoes.length === 0) {
+            select.innerHTML = '<option value="">Você não tem plantões futuros</option>';
+        } else {
+            select.innerHTML = '<option value="">Selecione um plantão...</option>' +
+                plantoes.map(p => {
+                    const data = new Date(p.data).toLocaleDateString('pt-BR');
+                    return `<option value="${p.id}">${p.tipo} - ${data} - ${p.turno}</option>`;
+                }).join('');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar plantões:', error);
+    }
+
+    document.getElementById('modalAnunciarPlantao').classList.add('show');
 }
 
-function fecharModalCriarAnuncio() {
-    document.getElementById('modalCriarAnuncio').classList.remove('show');
+function fecharModalAnunciarPlantao() {
+    document.getElementById('modalAnunciarPlantao').classList.remove('show');
 }
 
-function toggleCamposPagamento() {
-    const tipo = document.querySelector('input[name="tipoNegociacao"]:checked').value;
-    const camposPagamento = document.getElementById('camposPagamento');
+function toggleCamposPagamentoPlantao() {
+    const tipo = document.querySelector('input[name="tipoNegociacaoPlantao"]:checked').value;
+    const camposPagamento = document.getElementById('camposPagamentoPlantao');
 
     if (tipo === 'venda' || tipo === 'ambos') {
         camposPagamento.style.display = 'block';
@@ -361,19 +442,88 @@ function toggleCamposPagamento() {
     }
 }
 
-async function publicarNovoAnuncio(e) {
+async function publicarAnuncioPlantao(e) {
     e.preventDefault();
 
-    const titulo = document.getElementById('anuncioTitulo').value;
-    const descricao = document.getElementById('anuncioDescricao').value;
-    const tipoNegociacao = document.querySelector('input[name="tipoNegociacao"]:checked').value;
-    const valor = document.getElementById('valorAnuncio').value;
-    const pix = document.getElementById('pixAnuncio').value;
-    const contato = document.getElementById('contatoAnuncio').value;
+    const plantaoId = document.getElementById('plantaoAnunciar').value;
+    const tipoNegociacao = document.querySelector('input[name="tipoNegociacaoPlantao"]:checked').value;
+    const valor = document.getElementById('valorAnuncioPlantao').value;
+    const pix = document.getElementById('pixAnuncioPlantao').value;
+    const observacoes = document.getElementById('observacoesPlantao').value;
+
+    if (!plantaoId) {
+        mostrarMensagem('Selecione um plantão', 'warning');
+        return;
+    }
 
     try {
         const anuncioData = {
             usuario_id: usuarioAtual.id,
+            plantao_id: plantaoId,
+            tipo_publicacao: 'plantao',
+            tipo_anuncio: tipoNegociacao,
+            valor_minimo: valor ? parseFloat(valor) : null,
+            chave_pix: pix || null,
+            observacoes: observacoes || null,
+            status: 'ativo'
+        };
+
+        const { error } = await supabase
+            .from('anuncios')
+            .insert([anuncioData]);
+
+        if (error) throw error;
+
+        mostrarMensagem('✅ Plantão anunciado com sucesso!', 'success');
+        fecharModalAnunciarPlantao();
+        await carregarAnuncios();
+        await carregarMeusAnuncios();
+
+    } catch (error) {
+        console.error('Erro ao publicar anúncio:', error);
+        mostrarMensagem('Erro ao publicar anúncio. Tente novamente.', 'error');
+    }
+}
+
+// =============================================
+// ANUNCIAR DISPONIBILIDADE
+// =============================================
+
+function abrirModalAnunciarDisponibilidade() {
+    document.getElementById('formAnunciarDisponibilidade').reset();
+    document.getElementById('camposPagamentoDisponibilidade').style.display = 'none';
+    document.getElementById('modalAnunciarDisponibilidade').classList.add('show');
+}
+
+function fecharModalAnunciarDisponibilidade() {
+    document.getElementById('modalAnunciarDisponibilidade').classList.remove('show');
+}
+
+function toggleCamposPagamentoDisponibilidade() {
+    const tipo = document.querySelector('input[name="tipoNegociacaoDisponibilidade"]:checked').value;
+    const camposPagamento = document.getElementById('camposPagamentoDisponibilidade');
+
+    if (tipo === 'venda' || tipo === 'ambos') {
+        camposPagamento.style.display = 'block';
+    } else {
+        camposPagamento.style.display = 'none';
+    }
+}
+
+async function publicarAnuncioDisponibilidade(e) {
+    e.preventDefault();
+
+    const titulo = document.getElementById('disponibilidadeTitulo').value;
+    const descricao = document.getElementById('disponibilidadeDescricao').value;
+    const tipoNegociacao = document.querySelector('input[name="tipoNegociacaoDisponibilidade"]:checked').value;
+    const valor = document.getElementById('valorDisponibilidade').value;
+    const pix = document.getElementById('pixDisponibilidade').value;
+    const contato = document.getElementById('contatoDisponibilidade').value;
+
+    try {
+        const anuncioData = {
+            usuario_id: usuarioAtual.id,
+            tipo_publicacao: 'disponibilidade',
             titulo: titulo,
             descricao: descricao,
             tipo_anuncio: tipoNegociacao,
@@ -389,8 +539,8 @@ async function publicarNovoAnuncio(e) {
 
         if (error) throw error;
 
-        mostrarMensagem('✅ Anúncio publicado com sucesso!', 'success');
-        fecharModalCriarAnuncio();
+        mostrarMensagem('✅ Disponibilidade anunciada com sucesso!', 'success');
+        fecharModalAnunciarDisponibilidade();
         await carregarAnuncios();
         await carregarMeusAnuncios();
 
@@ -414,6 +564,20 @@ async function carregarMeusAnuncios() {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
+
+        // Carregar dados do plantão quando aplicável
+        if (anuncios && anuncios.length > 0) {
+            for (let anuncio of anuncios) {
+                if (anuncio.plantao_id) {
+                    const { data: plantao } = await supabase
+                        .from('plantoes')
+                        .select('*')
+                        .eq('id', anuncio.plantao_id)
+                        .single();
+                    anuncio.plantao = plantao;
+                }
+            }
+        }
 
         exibirMeusAnuncios(anuncios || []);
 
@@ -451,28 +615,63 @@ function exibirMeusAnuncios(anuncios) {
 
         const dataTexto = new Date(a.created_at).toLocaleDateString('pt-BR');
 
-        return `
-            <div class="card" style="padding: 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${a.titulo}</div>
-                        <div style="font-size: 12px; color: #999;">Publicado em ${dataTexto}</div>
+        // Se tem plantão (anúncio de plantão específico)
+        if (a.plantao) {
+            const plantao = a.plantao;
+            const dataPlantao = new Date(plantao.data).toLocaleDateString('pt-BR');
+
+            return `
+                <div class="card" style="padding: 16px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">📋 ${plantao.tipo}</div>
+                            <div style="font-size: 12px; color: #999;">Publicado em ${dataTexto}</div>
+                        </div>
+                        <div style="background: ${tipoColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; margin-left: 8px;">
+                            ${tipoTexto}
+                        </div>
                     </div>
-                    <div style="background: ${tipoColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; margin-left: 8px;">
-                        ${tipoTexto}
+                    <div style="background: #f8f8f8; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                        <div style="display: grid; gap: 6px; font-size: 14px;">
+                            <div>📅 Data: ${dataPlantao}</div>
+                            <div>⏰ Turno: ${plantao.turno}</div>
+                            <div>📍 Local: ${plantao.local || 'N/A'}</div>
+                            <div>📚 Módulo: ${plantao.modulo}</div>
+                        </div>
+                    </div>
+                    ${a.observacoes ? `<div style="font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic;">"${a.observacoes}"</div>` : ''}
+                    ${valorTexto}
+                    ${pixTexto}
+                    <div style="margin-top: 12px;">
+                        <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
                     </div>
                 </div>
-                <div style="background: #f8f8f8; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
-                    <div style="font-size: 14px; white-space: pre-wrap;">${a.descricao}</div>
+            `;
+        } else {
+            // Anúncio de disponibilidade
+            return `
+                <div class="card" style="padding: 16px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">✋ ${a.titulo || 'Disponibilidade'}</div>
+                            <div style="font-size: 12px; color: #999;">Publicado em ${dataTexto}</div>
+                        </div>
+                        <div style="background: ${tipoColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; margin-left: 8px;">
+                            ${tipoTexto}
+                        </div>
+                    </div>
+                    <div style="background: #f8f8f8; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                        <div style="font-size: 14px; white-space: pre-wrap;">${a.descricao || ''}</div>
+                    </div>
+                    ${valorTexto}
+                    ${pixTexto}
+                    ${contatoTexto}
+                    <div style="margin-top: 12px;">
+                        <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
+                    </div>
                 </div>
-                ${valorTexto}
-                ${pixTexto}
-                ${contatoTexto}
-                <div style="margin-top: 12px;">
-                    <button onclick="removerAnuncio('${a.id}')" class="btn btn-sm btn-danger">🗑️ Remover</button>
-                </div>
-            </div>
-        `;
+            `;
+        }
     }).join('');
 }
 
@@ -484,7 +683,7 @@ async function removerAnuncio(id) {
     try {
         const { error } = await supabase
             .from('anuncios')
-            .update({ status: 'inativo' })
+            .update({ status: 'cancelado' })
             .eq('id', id);
 
         if (error) throw error;
@@ -518,8 +717,10 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         if (event.target.id === 'modalOferta') {
             fecharModalOferta();
-        } else if (event.target.id === 'modalCriarAnuncio') {
-            fecharModalCriarAnuncio();
+        } else if (event.target.id === 'modalAnunciarPlantao') {
+            fecharModalAnunciarPlantao();
+        } else if (event.target.id === 'modalAnunciarDisponibilidade') {
+            fecharModalAnunciarDisponibilidade();
         }
     }
 }
