@@ -132,17 +132,25 @@ function exibirAnuncios(anuncios) {
         if (anuncio.tipo_anuncio === 'troca') {
             tipoAnuncioTexto = '🔄 Troca';
             tipoAnuncioCor = '#0066cc';
-        } else if (anuncio.tipo_anuncio === 'venda' || anuncio.tipo_anuncio === 'pagamento') {
-            tipoAnuncioTexto = '💰 Venda';
-            tipoAnuncioCor = '#009900';
+        } else if (anuncio.tipo_anuncio === 'pago') {
+            tipoAnuncioTexto = '💸 Pago para pegar';
+            tipoAnuncioCor = '#dc3545';
+        } else if (anuncio.tipo_anuncio === 'recebo') {
+            tipoAnuncioTexto = '💰 Recebo para pegar';
+            tipoAnuncioCor = '#28a745';
         } else {
-            tipoAnuncioTexto = '🔄💰 Troca ou Venda';
+            tipoAnuncioTexto = '🔄💰 Troca ou Pagamento';
             tipoAnuncioCor = '#cc6600';
         }
 
-        const valorTexto = anuncio.valor_minimo ?
-            `<div style="font-size: 14px; color: #009900; margin-top: 8px;">
-                💵 A partir de R$ ${anuncio.valor_minimo.toFixed(2)}
+        // Se tem plantão (anunciante quer PASSAR o plantão)
+        const valorTexto = anuncio.valor_minimo && anuncio.plantao ?
+            `<div style="font-size: 14px; color: #dc3545; margin-top: 8px; font-weight: 600;">
+                💸 Paga R$ ${anuncio.valor_minimo.toFixed(2)} para quem pegar
+            </div>` :
+        anuncio.valor_minimo && !anuncio.plantao ?
+            `<div style="font-size: 14px; color: #28a745; margin-top: 8px; font-weight: 600;">
+                💰 Recebe no mínimo R$ ${anuncio.valor_minimo.toFixed(2)} para pegar
             </div>` : '';
 
         // Se tem plantão (anúncio de plantão específico)
@@ -285,7 +293,12 @@ function alterarTipoOferta() {
         secaoPagamento.style.display = 'none';
         document.getElementById('plantaoOferecido').required = true;
         document.getElementById('valorOferta').required = false;
-    } else if (tipo === 'pagamento') {
+    } else if (tipo === 'aceita_valor') {
+        secaoTroca.style.display = 'none';
+        secaoPagamento.style.display = 'none';
+        document.getElementById('plantaoOferecido').required = false;
+        document.getElementById('valorOferta').required = false;
+    } else if (tipo === 'contraproposta') {
         secaoTroca.style.display = 'none';
         secaoPagamento.style.display = 'block';
         document.getElementById('plantaoOferecido').required = false;
@@ -353,7 +366,11 @@ async function enviarOferta(e) {
             }
             ofertaData.plantao_oferecido_id = plantaoId;
             ofertaData.valor_oferecido = null;
-        } else {
+        } else if (tipoOferta === 'aceita_valor') {
+            // Aceita o valor do anúncio
+            ofertaData.valor_oferecido = anuncioSelecionado.valor_minimo || 0;
+            ofertaData.plantao_oferecido_id = null;
+        } else if (tipoOferta === 'contraproposta') {
             const valor = parseFloat(document.getElementById('valorOferta').value);
             if (!valor || valor <= 0) {
                 mostrarMensagem('Digite um valor válido', 'warning');
@@ -361,6 +378,9 @@ async function enviarOferta(e) {
             }
             ofertaData.valor_oferecido = valor;
             ofertaData.plantao_oferecido_id = null;
+        } else {
+            ofertaData.plantao_oferecido_id = null;
+            ofertaData.valor_oferecido = null;
         }
 
         // Inserir oferta
@@ -371,13 +391,21 @@ async function enviarOferta(e) {
         if (error) throw error;
 
         // Criar notificação para o anunciante
+        const tipoAnuncioTexto = anuncioSelecionado.plantao ?
+            `plantão de ${anuncioSelecionado.plantao.tipo}` :
+            'disponibilidade';
+
+        const tipoOfertaTexto = tipoOferta === 'troca' ? 'troca' :
+                                tipoOferta === 'aceita_valor' ? 'aceitou o valor' :
+                                'contraproposta de valor';
+
         await supabase
             .from('notificacoes')
             .insert([{
                 usuario_id: anuncioSelecionado.usuario_id,
                 tipo: 'nova_oferta',
                 titulo: 'Nova oferta recebida!',
-                mensagem: `${usuarioAtual.nome || `Aluno #${usuarioAtual.numero_chamada}`} fez uma oferta no seu anúncio de ${anuncioSelecionado.plantao.tipo}`,
+                mensagem: `${usuarioAtual.nome || `Aluno #${usuarioAtual.numero_chamada}`} fez uma oferta de ${tipoOfertaTexto} no seu anúncio de ${tipoAnuncioTexto}`,
                 link: '/dashboard.html'
             }]);
 
@@ -435,7 +463,7 @@ function toggleCamposPagamentoPlantao() {
     const tipo = document.querySelector('input[name="tipoNegociacaoPlantao"]:checked').value;
     const camposPagamento = document.getElementById('camposPagamentoPlantao');
 
-    if (tipo === 'venda' || tipo === 'ambos') {
+    if (tipo === 'pago' || tipo === 'ambos') {
         camposPagamento.style.display = 'block';
     } else {
         camposPagamento.style.display = 'none';
@@ -503,7 +531,7 @@ function toggleCamposPagamentoDisponibilidade() {
     const tipo = document.querySelector('input[name="tipoNegociacaoDisponibilidade"]:checked').value;
     const camposPagamento = document.getElementById('camposPagamentoDisponibilidade');
 
-    if (tipo === 'venda' || tipo === 'ambos') {
+    if (tipo === 'recebo' || tipo === 'ambos') {
         camposPagamento.style.display = 'block';
     } else {
         camposPagamento.style.display = 'none';
@@ -598,14 +626,19 @@ function exibirMeusAnuncios(anuncios) {
 
     container.innerHTML = anuncios.map(a => {
         const tipoTexto = a.tipo_anuncio === 'troca' ? '🔄 Troca' :
-                          a.tipo_anuncio === 'venda' ? '💰 Venda' :
-                          '🔄💰 Troca ou Venda';
+                          a.tipo_anuncio === 'pago' ? '💸 Pago para pegar' :
+                          a.tipo_anuncio === 'recebo' ? '💰 Recebo para pegar' :
+                          '🔄💰 Troca ou Pagamento';
         const tipoColor = a.tipo_anuncio === 'troca' ? '#0066cc' :
-                          a.tipo_anuncio === 'venda' ? '#009900' :
+                          a.tipo_anuncio === 'pago' ? '#dc3545' :
+                          a.tipo_anuncio === 'recebo' ? '#28a745' :
                           '#cc6600';
 
-        const valorTexto = a.valor_minimo && a.valor_minimo > 0 ?
-            `<div style="margin-top: 8px; color: #009900; font-weight: 600;">💵 A partir de R$ ${a.valor_minimo.toFixed(2)}</div>` : '';
+        // Se tem plantão (anunciante quer PASSAR o plantão)
+        const valorTexto = a.valor_minimo && a.valor_minimo > 0 && a.plantao ?
+            `<div style="margin-top: 8px; color: #dc3545; font-weight: 600;">💸 Paga R$ ${a.valor_minimo.toFixed(2)} para quem pegar</div>` :
+        a.valor_minimo && a.valor_minimo > 0 && !a.plantao ?
+            `<div style="margin-top: 8px; color: #28a745; font-weight: 600;">💰 Recebe no mínimo R$ ${a.valor_minimo.toFixed(2)} para pegar</div>` : '';
 
         const pixTexto = a.chave_pix ?
             `<div style="margin-top: 4px; font-size: 13px; color: #666;">PIX: ${a.chave_pix}</div>` : '';

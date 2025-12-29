@@ -112,23 +112,26 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Tipo de Negociação *</label>
+                        <label>Como você quer negociar? *</label>
                         <div>
-                            <label><input type="radio" name="tipoNegociacaoPlantao" value="troca" checked onchange="toggleCamposPagamentoPlantao()"> Apenas Troca</label><br>
-                            <label><input type="radio" name="tipoNegociacaoPlantao" value="venda" onchange="toggleCamposPagamentoPlantao()"> Apenas Venda</label><br>
-                            <label><input type="radio" name="tipoNegociacaoPlantao" value="ambos" onchange="toggleCamposPagamentoPlantao()"> Aceito Ambos (Troca ou Venda)</label>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="troca" checked onchange="toggleCamposPagamentoPlantao()"> Apenas Troca (trocar por outro plantão)</label><br>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="pago" onchange="toggleCamposPagamentoPlantao()"> Pago para alguém pegar</label><br>
+                            <label><input type="radio" name="tipoNegociacaoPlantao" value="ambos" onchange="toggleCamposPagamentoPlantao()"> Aceito Troca OU Pagamento</label>
                         </div>
                     </div>
 
                     <div id="camposPagamentoPlantao" style="display: none;">
+                        <div class="alert" style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                            💡 <strong>Atenção:</strong> Você vai PAGAR este valor para alguém pegar seu plantão
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="valorAnuncioPlantao">Valor Mínimo (R$)</label>
+                                <label for="valorAnuncioPlantao">Quanto você paga? (R$)</label>
                                 <input type="number" id="valorAnuncioPlantao" min="0" step="0.01" placeholder="0.00">
-                                <small>Deixe 0 ou vazio se não houver valor mínimo</small>
+                                <small>Valor que você oferece para alguém pegar o plantão</small>
                             </div>
                             <div class="form-group">
-                                <label for="pixAnuncioPlantao">Chave PIX (opcional)</label>
+                                <label for="pixAnuncioPlantao">Chave PIX para receber propostas</label>
                                 <input type="text" id="pixAnuncioPlantao" placeholder="Sua chave PIX">
                             </div>
                         </div>
@@ -170,23 +173,26 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Tipo de Negociação *</label>
+                        <label>Como você aceita pegar plantões? *</label>
                         <div>
-                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="troca" checked onchange="toggleCamposPagamentoDisponibilidade()"> Apenas Troca</label><br>
-                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="venda" onchange="toggleCamposPagamentoDisponibilidade()"> Apenas Venda</label><br>
-                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="ambos" onchange="toggleCamposPagamentoDisponibilidade()"> Aceito Ambos (Troca ou Venda)</label>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="troca" checked onchange="toggleCamposPagamentoDisponibilidade()"> Apenas Troca (trocar plantões)</label><br>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="recebo" onchange="toggleCamposPagamentoDisponibilidade()"> Só pego se receberem pagamento</label><br>
+                            <label><input type="radio" name="tipoNegociacaoDisponibilidade" value="ambos" onchange="toggleCamposPagamentoDisponibilidade()"> Aceito Troca OU Pagamento</label>
                         </div>
                     </div>
 
                     <div id="camposPagamentoDisponibilidade" style="display: none;">
+                        <div class="alert" style="background: #d1ecf1; border: 1px solid #0c5460; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                            💰 <strong>Você vai RECEBER</strong> este valor mínimo para pegar o plantão de alguém
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="valorDisponibilidade">Valor Mínimo (R$)</label>
+                                <label for="valorDisponibilidade">Valor Mínimo que aceita receber (R$)</label>
                                 <input type="number" id="valorDisponibilidade" min="0" step="0.01" placeholder="0.00">
-                                <small>Deixe 0 ou vazio se não houver valor mínimo</small>
+                                <small>Menor valor que você aceita receber para pegar um plantão</small>
                             </div>
                             <div class="form-group">
-                                <label for="pixDisponibilidade">Chave PIX (opcional)</label>
+                                <label for="pixDisponibilidade">Chave PIX para receber</label>
                                 <input type="text" id="pixDisponibilidade" placeholder="Sua chave PIX">
                             </div>
                         </div>
@@ -224,8 +230,9 @@
                         <label>Tipo de Oferta</label>
                         <select id="tipoOferta" name="tipoOferta" required onchange="alterarTipoOferta()">
                             <option value="">Selecione...</option>
-                            <option value="troca">Trocar por um dos meus plantões</option>
-                            <option value="pagamento">Oferecer pagamento</option>
+                            <option value="troca">Ofereço meus plantões para trocar</option>
+                            <option value="aceita_valor">Aceito o valor oferecido</option>
+                            <option value="contraproposta">Faço contraproposta de valor</option>
                         </select>
                     </div>
 
@@ -262,10 +269,10 @@
     <div id="mensagem" class="mensagem"></div>
 
     <!-- Cliente Supabase customizado (sem CDN - funciona em qualquer navegador) -->
-    <script src="js/supabase-client.js?v=15"></script>
-    <script src="js/config.js?v=15"></script>
-    <script src="js/auth.js?v=15"></script>
-    <script src="js/trocas.js?v=15"></script>
-    <script src="js/anuncios.js?v=15"></script>
+    <script src="js/supabase-client.js?v=16"></script>
+    <script src="js/config.js?v=16"></script>
+    <script src="js/auth.js?v=16"></script>
+    <script src="js/trocas.js?v=16"></script>
+    <script src="js/anuncios.js?v=16"></script>
 </body>
 </html>
