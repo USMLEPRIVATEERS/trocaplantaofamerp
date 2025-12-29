@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmarSenhaInput = document.getElementById('confirmarSenha');
     const mensagemDiv = document.getElementById('mensagem');
 
+    // Verificar se está na página de login
+    if (!form) {
+        return; // Não é a página de login, sair
+    }
+
     // Carregar dados do cache (localStorage)
     carregarDadosCache();
 

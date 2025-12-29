@@ -28,11 +28,7 @@ async function carregarAnuncios() {
     try {
         const { data: anuncios, error } = await supabase
             .from('anuncios')
-            .select(`
-                *,
-                usuario:usuarios!usuario_id(numero_chamada, nome, serie),
-                plantao:plantoes!plantao_id(id, tipo, data, turno, modulo, local)
-            `)
+            .select('*, usuario:usuarios!usuario_id(numero_chamada, nome, serie), plantao:plantoes!plantao_id(id, tipo, data, turno, modulo, local)')
             .eq('status', 'ativo')
             .neq('usuario_id', usuarioAtual.id)
             .order('created_at', { ascending: false });
